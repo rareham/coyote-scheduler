@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <memory>
 #include <unordered_set>
+#include <vector>
 #include "operation_status.h"
 
 namespace coyote
@@ -48,7 +49,7 @@ namespace coyote
 		void join_operation(size_t operation_id);
 
 		// Waits until the specified operations have completed.
-		void join_operations(const size_t* operation_ids, int size, bool wait_all);
+		void join_operations(const std::vector<size_t>& operation_ids, bool wait_all);
 
 		// Waits until the specified resource sends a signal.
 		void wait_resource_signal(size_t resource_id);
