@@ -106,7 +106,7 @@ extern "C" {
         return ptr->next_boolean();
     }
 
-    COYOTE_API int next_integer(void* scheduler, size_t max_value)
+    COYOTE_API int next_integer(void* scheduler, int max_value)
     {
         Scheduler* ptr = (Scheduler*)scheduler;
         return ptr->next_integer(max_value);
