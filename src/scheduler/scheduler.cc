@@ -30,9 +30,9 @@ namespace coyote
 		try
 		{
 			std::unique_lock<std::mutex> lock(*mutex);
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 			std::cout << "[coyote::attach] attaching the current operation" << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 
 			if (is_attached)
 			{
@@ -69,9 +69,9 @@ namespace coyote
 		try
 		{
 			std::unique_lock<std::mutex> lock(*mutex);
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 			std::cout << "[coyote::detach] releasing all operations" << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 
 			if (!is_attached)
 			{
@@ -88,9 +88,9 @@ namespace coyote
 				Operation* op = kvp.second.get();
 				if (op->status != OperationStatus::Completed)
 				{
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 					std::cout << "[coyote::detach] canceling operation " << op->id << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 					// If the operation has not already completed, then cancel it.
 					op->is_scheduled = true;
 					op->status = OperationStatus::Completed;
@@ -119,9 +119,9 @@ namespace coyote
 		try
 		{
 			std::unique_lock<std::mutex> lock(*mutex);
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 			std::cout << "[coyote::create_operation] creating operation " << operation_id << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 
 			if (!is_attached)
 			{
@@ -172,9 +172,9 @@ namespace coyote
 		try
 		{
 			std::unique_lock<std::mutex> lock(*mutex);
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 			std::cout << "[coyote::start_operation] starting operation " << operation_id << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 
 			if (!is_attached)
 			{
@@ -206,9 +206,9 @@ namespace coyote
 		auto it = operation_map.find(operation_id);
 		if (it == operation_map.end())
 		{
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 			std::cout << "[coyote::start_operation] not existing operation " << operation_id << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 			throw ErrorCode::NotExistingOperation;
 		}
 
@@ -224,9 +224,9 @@ namespace coyote
 
 		// Decrement the count of pending operations.
 		pending_start_operation_count -= 1;
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 		std::cout << "[coyote::start_operation] " << pending_start_operation_count << " operations pending" << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 		if (pending_start_operation_count == 0)
 		{
 			// If no pending operations remain, then release schedule next.
@@ -239,13 +239,13 @@ namespace coyote
 			op->cv.notify_all();
 			while (!op->is_scheduled)
 			{
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 				std::cout << "[coyote::start_operation] pausing operation " << operation_id << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 				op->cv.wait(lock);
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 				std::cout << "[coyote::start_operation] resuming operation " << operation_id << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 			}
 		}
 	}
@@ -255,9 +255,9 @@ namespace coyote
 		try
 		{
 			std::unique_lock<std::mutex> lock(*mutex);
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 			std::cout << "[coyote::join_operation] joining operation " << operation_id << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 
 			if (!is_attached)
 			{
@@ -267,9 +267,9 @@ namespace coyote
 			auto it = operation_map.find(operation_id);
 			if (it == operation_map.end())
 			{
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 				std::cout << "[coyote::join_operation] not existing operation " << operation_id << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 				throw ErrorCode::NotExistingOperation;
 			}
 
@@ -284,12 +284,12 @@ namespace coyote
 				// Waiting for the resource to be released, so schedule the next enabled operation.
 				schedule_next(lock);
 			}
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 			else
 			{
 				std::cout << "[coyote::join_operation] already completed operation " << operation_id << std::endl;
 			}
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 		}
 		catch (ErrorCode error_code)
 		{
@@ -310,15 +310,15 @@ namespace coyote
 			std::unique_lock<std::mutex> lock(*mutex);
 			if (wait_all)
 			{
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 				std::cout << "[coyote::join_operations] joining all " << size << " operations" << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 			}
 			else
 			{
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 				std::cout << "[coyote::join_operations] joining any of " << size << " operations" << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 			}
 
 			if (!is_attached)
@@ -333,9 +333,9 @@ namespace coyote
 				auto it = operation_map.find(operation_id);
 				if (it == operation_map.end())
 				{
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 					std::cout << "[coyote::join_operations] not existing operation " << operation_id << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 					throw ErrorCode::NotExistingOperation;
 				}
 
@@ -345,12 +345,12 @@ namespace coyote
 					join_op->blocked_operation_ids.insert(scheduled_operation_id);
 					join_operations.push_back(operation_id);
 				}
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 				else
 				{
 					std::cout << "[coyote::join_operation] already completed operation " << operation_id << std::endl;
 				}
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 			}
 
 			if (!join_operations.empty())
@@ -381,9 +381,9 @@ namespace coyote
 		try
 		{
 			std::unique_lock<std::mutex> lock(*mutex);
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 			std::cout << "[coyote::complete_operation] completing operation " << operation_id << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 
 			if (!is_attached)
 			{
@@ -397,9 +397,9 @@ namespace coyote
 			auto it = operation_map.find(operation_id);
 			if (it == operation_map.end())
 			{
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 				std::cout << "[coyote::complete_operation] not existing operation " << operation_id << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 				throw ErrorCode::NotExistingOperation;
 			}
 
@@ -442,9 +442,9 @@ namespace coyote
 		try
 		{
 			std::unique_lock<std::mutex> lock(*mutex);
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 			std::cout << "[coyote::create_resource] creating resource " << resource_id << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 
 			if (!is_attached)
 			{
@@ -477,9 +477,9 @@ namespace coyote
 		try
 		{
 			std::unique_lock<std::mutex> lock(*mutex);
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 			std::cout << "[coyote::wait_resource] waiting resource " << resource_id << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 
 			if (!is_attached)
 			{
@@ -520,15 +520,15 @@ namespace coyote
 			std::unique_lock<std::mutex> lock(*mutex);
 			if (wait_all)
 			{
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 				std::cout << "[coyote::wait_resources] waiting all " << size << " resources" << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 			}
 			else
 			{
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 				std::cout << "[coyote::wait_resources] waiting any of " << size << " resources" << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 			}
 
 			if (!is_attached)
@@ -572,9 +572,9 @@ namespace coyote
 		try
 		{
 			std::unique_lock<std::mutex> lock(*mutex);
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 			std::cout << "[coyote::signal_resource] signaling resource " << resource_id << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 
 			if (!is_attached)
 			{
@@ -611,9 +611,9 @@ namespace coyote
 		try
 		{
 			std::unique_lock<std::mutex> lock(*mutex);
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 			std::cout << "[coyote::delete_resource] deleting resource " << resource_id << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 
 			if (!is_attached)
 			{
@@ -667,17 +667,17 @@ namespace coyote
 
 	void Scheduler::schedule_next(std::unique_lock<std::mutex>& lock)
 	{
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 		std::cout << "[coyote::schedule_next] current operation " << scheduled_operation_id << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 
 		// Wait for any recently created operations to start.
 		while (pending_start_operation_count > 0)
 		{
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 			std::cout << "[coyote::schedule_next] waiting " << pending_start_operation_count <<
 				" pending operations" << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 			pending_operations_cv.wait(lock);
 		}
 
@@ -685,9 +685,9 @@ namespace coyote
 		std::shared_ptr<Operation> previous_op(operation_map.at(previous_id));
 		if (previous_op->status == OperationStatus::JoinAllOperations)
 		{
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 			std::cout << "[coyote::schedule_next] current operation " << scheduled_operation_id << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 		}
 
 		// Ask the strategy for the next operation to schedule.
@@ -695,9 +695,9 @@ namespace coyote
 		std::shared_ptr<Operation> next_op(operation_map.at(next_id));
 		scheduled_operation_id = next_id;
 
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 		std::cout << "[coyote::schedule_next] next operation " << next_id << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 
 		if (previous_id != next_id)
 		{
@@ -713,14 +713,14 @@ namespace coyote
 
 				while (!previous_op->is_scheduled)
 				{
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 					std::cout << "[coyote::schedule_next] pausing operation " << previous_id << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 					// Wait until the operation gets scheduled again.
 					previous_op->cv.wait(lock);
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 					std::cout << "[coyote::schedule_next] resuming operation " << previous_id << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 				}
 			}
 		}
@@ -750,15 +750,15 @@ namespace coyote
 		{
 			if (blocked_operations > 0)
 			{
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 				std::cout << "[coyote::schedule_next] deadlock detected" << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 				throw ErrorCode::DeadlockDetected;
 			}
 
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 			std::cout << "[coyote::schedule_next] no enabled operation to schedule" << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 			throw ErrorCode::Success;
 		}
 
@@ -767,17 +767,17 @@ namespace coyote
 
 	bool Scheduler::next_boolean() noexcept
 	{
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 		std::cout << "[coyote::next_boolean] " << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 		return strategy->next_boolean();
 	}
 
 	int Scheduler::next_integer(int max_value) noexcept
 	{
-#ifndef NDEBUG
+#ifdef COYOTE_SCHEDULE_LOG
 		std::cout << "[coyote::next_integer] " << std::endl;
-#endif // NDEBUG
+#endif // COYOTE_SCHEDULE_LOG
 		return strategy->next_integer(max_value);
 	}
 
