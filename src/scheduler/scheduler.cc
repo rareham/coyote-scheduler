@@ -101,7 +101,6 @@ namespace coyote
 			operation_map.clear();
 			resource_map.clear();
 			pending_start_operation_count = 0;
-			std::cout << "[coyote::detach] done" << std::endl;
 		}
 		catch (ErrorCode error_code)
 		{
@@ -304,7 +303,7 @@ namespace coyote
 		return last_error_code;
 	}
 
-	std::error_code Scheduler::join_operations(const size_t* operation_ids, int size, bool wait_all) noexcept
+	std::error_code Scheduler::join_operations(const size_t* operation_ids, size_t size, bool wait_all) noexcept
 	{
 		try
 		{
@@ -514,7 +513,7 @@ namespace coyote
 		return last_error_code;
 	}
 
-	std::error_code Scheduler::wait_resources(const size_t* resource_ids, int size, bool wait_all) noexcept
+	std::error_code Scheduler::wait_resources(const size_t* resource_ids, size_t size, bool wait_all) noexcept
 	{
 		try
 		{

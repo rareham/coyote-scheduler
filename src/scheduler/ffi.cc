@@ -44,7 +44,7 @@ extern "C" {
         return error_code.value();
     }
 
-    COYOTE_API int join_operations(void* scheduler, size_t* operation_ids, int size, bool wait_all)
+    COYOTE_API int join_operations(void* scheduler, size_t* operation_ids, size_t size, bool wait_all)
     {
         Scheduler* ptr = (Scheduler*)scheduler;
         std::error_code error_code = ptr->join_operations(operation_ids, size, wait_all);
@@ -72,7 +72,7 @@ extern "C" {
         return error_code.value();
     }
 
-    COYOTE_API int wait_resources(void* scheduler, size_t* resource_ids, int size, bool wait_all)
+    COYOTE_API int wait_resources(void* scheduler, size_t* resource_ids, size_t size, bool wait_all)
     {
         Scheduler* ptr = (Scheduler*)scheduler;
         std::error_code error_code = ptr->wait_resources(resource_ids, size, wait_all);

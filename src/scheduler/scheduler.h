@@ -74,7 +74,7 @@ namespace coyote
 		std::error_code join_operation(size_t operation_id) noexcept;
 
 		// Waits until the operations with the specified ids have completed.
-		std::error_code join_operations(const size_t* operation_ids, int size, bool wait_all) noexcept;
+		std::error_code join_operations(const size_t* operation_ids, size_t size, bool wait_all) noexcept;
 
 		// Completes executing the operation with the specified id and schedules the next operation.
 		std::error_code complete_operation(size_t operation_id) noexcept;
@@ -86,7 +86,7 @@ namespace coyote
 		std::error_code wait_resource(size_t resource_id) noexcept;
 		
 		// Waits the resources with the specified ids to become available and schedules the next operation.
-		std::error_code wait_resources(const size_t* resource_ids, int size, bool wait_all) noexcept;
+		std::error_code wait_resources(const size_t* resource_ids, size_t size, bool wait_all) noexcept;
         
 		// Signals the resource with the specified id is available.
 		std::error_code signal_resource(size_t resource_id) noexcept;

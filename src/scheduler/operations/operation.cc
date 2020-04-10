@@ -41,7 +41,7 @@ namespace coyote
 		pending_signal_resource_ids.insert(resource_id);
 	}
 
-	void Operation::wait_resource_signals(const size_t* resource_ids, int size, bool wait_all)
+	void Operation::wait_resource_signals(const size_t* resource_ids, size_t size, bool wait_all)
 	{
 		if (wait_all)
 		{

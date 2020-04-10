@@ -55,7 +55,7 @@ namespace coyote
 		void wait_resource_signal(size_t resource_id);
 
 		// Waits until the specified resources send a signal.
-		void wait_resource_signals(const size_t* resource_ids, int size, bool wait_all);
+		void wait_resource_signals(const size_t* resource_ids, size_t size, bool wait_all);
 
 		// Invoked when the specified operation completes.
 		void on_join_operation(size_t operation_id);
