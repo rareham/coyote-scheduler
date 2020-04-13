@@ -1,5 +1,6 @@
 An experimental C++ library for **language-agnostic systematic concurrency testing** by the
-[Coyote](https://microsoft.github.io/coyote/) team in [Microsoft Research](https://www.microsoft.com/en-us/research/).
+[Coyote](https://microsoft.github.io/coyote/) team in [Microsoft
+Research](https://www.microsoft.com/en-us/research/).
 
 The library provides APIs that allow you to instrument your runtime for (1) declaring concurrent
 _operations_ and synchronization _resources_. (2) taking control of these operations and resources,
@@ -9,6 +10,20 @@ The library exposes an FFI for interop with other languages.
 
 To learn more about the research behind our technology, check out our published papers
 [here](https://microsoft.github.io/coyote/learn/resources/publications).
+
+## How to build
+On Windows, open the project as a Visual Studio 2019 CMake project by selecting the CMakeLists.txt
+file and then build the project.
+
+On Linux, run the following from the root directory:
+```
+mkdir build
+cd build
+cmake -G "Ninja" ..
+ninja
+```
+
+To build for release under Linux, add to the `-DCMAKE_BUILD_TYPE=Release` flag when invoking `cmake`.
 
 ## Contributing
 This project welcomes contributions and suggestions. Most contributions require you to agree to a
