@@ -23,7 +23,9 @@ void work_1()
 	scheduler->schedule_next();
 	if (shared_var != 1)
 	{
+#ifdef COYOTE_LOG
 		std::cout << "[test] found race condition in thread 1." << std::endl;
+#endif // COYOTE_LOG
 		race_found = true;
 	}
 
@@ -38,7 +40,9 @@ void work_2()
 	scheduler->schedule_next();
 	if (shared_var != 2)
 	{
+#ifdef COYOTE_LOG
 		std::cout << "[test] found race condition in thread 2." << std::endl;
+#endif // COYOTE_LOG
 		race_found = true;
 	}
 
@@ -75,7 +79,9 @@ void test()
 
 	for (int i = 0; i < 100; i++)
 	{
+#ifdef COYOTE_LOG
 		std::cout << "[test] iteration " << i << std::endl;
+#endif // COYOTE_LOG
 		run_iteration();
 		if (race_found)
 		{
@@ -102,6 +108,7 @@ void replay()
 int main()
 {
 	std::cout << "[test] started." << std::endl;
+	auto start_time = std::chrono::steady_clock::now();
 
 	try
 	{
@@ -117,6 +124,6 @@ int main()
 		return 1;
 	}
 
-	std::cout << "[test] done." << std::endl;
+	std::cout << "[test] done in " << total_time(start_time) << "ms." << std::endl;
 	return 0;
 }

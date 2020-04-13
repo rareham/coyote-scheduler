@@ -67,6 +67,7 @@ void run_iteration()
 int main()
 {
 	std::cout << "[test] started." << std::endl;
+	auto start_time = std::chrono::steady_clock::now();
 
 	try
 	{
@@ -74,7 +75,9 @@ int main()
 
 		for (int i = 0; i < 100; i++)
 		{
+#ifdef COYOTE_LOG
 			std::cout << "[test] iteration " << i << std::endl;
+#endif // COYOTE_LOG
 			curr_trace = "";
 			run_iteration();
 		}
@@ -87,6 +90,6 @@ int main()
 		return 1;
 	}
 
-	std::cout << "[test] done." << std::endl;
+	std::cout << "[test] done in " << total_time(start_time) << "ms." << std::endl;
 	return 0;
 }
