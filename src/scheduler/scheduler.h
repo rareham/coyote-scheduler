@@ -9,6 +9,7 @@
 #include <map>
 #include <memory>
 #include <unordered_set>
+#include <vector>
 #include "errors/error_code.h"
 #include "operations/operation.h"
 #include "strategies/random_strategy.h"
@@ -23,6 +24,9 @@ namespace coyote
 
 		// Map from unique operation ids to operations.
 		std::map<size_t, std::shared_ptr<Operation>> operation_map;
+
+		// Vector of enabled operation ids.
+		std::vector<size_t> enabled_operation_ids;
 
 		// Map from unique resource ids to blocked operation ids.
 		std::map<size_t, std::shared_ptr<std::unordered_set<size_t>>> resource_map;
@@ -121,7 +125,7 @@ namespace coyote
 		void start_operation(size_t operation_id, std::unique_lock<std::mutex>& lock);
 		void schedule_next(std::unique_lock<std::mutex>& lock);
 
-		const std::vector<std::shared_ptr<Operation>> enabled_operations();
+		void check_operation_availability();
 	};
 }
 

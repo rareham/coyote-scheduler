@@ -58,7 +58,7 @@ namespace coyote
 		}
 	}
 
-	void Operation::on_join_operation(size_t operation_id)
+	bool Operation::on_join_operation(size_t operation_id)
 	{
 		pending_join_operation_ids.erase(operation_id);
 		if (status == OperationStatus::JoinAllOperations && pending_join_operation_ids.empty())
@@ -66,6 +66,7 @@ namespace coyote
 			// If the operation is waiting for all operations to complete, and there
 			// are no more pending operations, then enable the operation.
 			status = OperationStatus::Enabled;
+			return true;
 		}
 		else if (status == OperationStatus::JoinAnyOperations)
 		{
@@ -73,10 +74,13 @@ namespace coyote
 			// and clear the set of pending operations.
 			status = OperationStatus::Enabled;
 			pending_join_operation_ids.clear();
+			return true;
 		}
+
+		return false;
 	}
 
-	void Operation::on_resource_signal(size_t resource_id)
+	bool Operation::on_resource_signal(size_t resource_id)
 	{
 		pending_signal_resource_ids.erase(resource_id);
 		if (status == OperationStatus::WaitAllResources && pending_signal_resource_ids.empty())
@@ -84,6 +88,7 @@ namespace coyote
 			// If the operation is waiting for a signal from all resources, and there
 			// are no more pending resources, then enable the operation.
 			status = OperationStatus::Enabled;
+			return true;
 		}
 		else if (status == OperationStatus::WaitAnyResource)
 		{
@@ -91,6 +96,9 @@ namespace coyote
 			// and clear the set of pending resources.
 			status = OperationStatus::Enabled;
 			pending_signal_resource_ids.clear();
+			return true;
 		}
+
+		return false;
 	}
 }

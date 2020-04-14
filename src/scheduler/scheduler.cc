@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <vector>
@@ -99,6 +100,7 @@ namespace coyote
 			}
 
 			operation_map.clear();
+			enabled_operation_ids.clear();
 			resource_map.clear();
 			pending_start_operation_count = 0;
 		}
@@ -236,6 +238,7 @@ namespace coyote
 		if (op->status != OperationStatus::Completed)
 		{
 			op->status = OperationStatus::Enabled;
+			enabled_operation_ids.push_back(op->id);
 			op->cv.notify_all();
 			while (!op->is_scheduled)
 			{
@@ -418,8 +421,11 @@ namespace coyote
 			// Notify any operations that are waiting to join this operation.
 			for (const auto& blocked_id : op->blocked_operation_ids)
 			{
-				std::shared_ptr<Operation> op(operation_map.at(blocked_id));
-				op->on_join_operation(operation_id);
+				std::shared_ptr<Operation> blocked_op(operation_map.at(blocked_id));
+				if (blocked_op->on_join_operation(operation_id))
+				{
+					enabled_operation_ids.push_back(blocked_op->id);
+				}
 			}
 
 			// The current operation has completed, so schedule the next enabled operation.
@@ -590,8 +596,11 @@ namespace coyote
 			std::shared_ptr<std::unordered_set<size_t>> blocked_operation_ids(it->second);
 			for (const auto& blocked_id : *blocked_operation_ids)
 			{
-				std::shared_ptr<Operation> op(operation_map.at(blocked_id));
-				op->on_resource_signal(resource_id);
+				std::shared_ptr<Operation> blocked_op(operation_map.at(blocked_id));
+				if (blocked_op->on_resource_signal(resource_id))
+				{
+					enabled_operation_ids.push_back(blocked_op->id);
+				}
 			}
 		}
 		catch (ErrorCode error_code)
@@ -690,8 +699,14 @@ namespace coyote
 #endif // COYOTE_LOG
 		}
 
+		// Check if there are any enabled operations or if the client has deadlocked.
+		check_operation_availability();
+
+		enabled_operation_ids.erase(std::remove_if(enabled_operation_ids.begin(), enabled_operation_ids.end(),
+			[this](size_t id) { return operation_map[id]->status != OperationStatus::Enabled; }), enabled_operation_ids.end());
+
 		// Ask the strategy for the next operation to schedule.
-		size_t next_id = strategy->next_operation(enabled_operations());
+		size_t next_id = strategy->next_operation(enabled_operation_ids);
 		std::shared_ptr<Operation> next_op(operation_map.at(next_id));
 		scheduled_operation_id = next_id;
 
@@ -726,16 +741,16 @@ namespace coyote
 		}
 	}
 
-	const std::vector<std::shared_ptr<Operation>> Scheduler::enabled_operations()
+	void Scheduler::check_operation_availability()
 	{
-		// Get all enabled operations.
 		int blocked_operations = 0;
-		std::vector<std::shared_ptr<Operation>> enabled_ops;
+		bool exists_enabled_operation = false;
 		for (auto& op : operation_map)
 		{
 			if (op.second->status == OperationStatus::Enabled)
 			{
-				enabled_ops.push_back(std::shared_ptr<Operation>(op.second));
+				exists_enabled_operation = true;
+				break;
 			}
 			else if (op.second->status == OperationStatus::JoinAllOperations ||
 				op.second->status == OperationStatus::JoinAnyOperations ||
@@ -746,7 +761,7 @@ namespace coyote
 			}
 		}
 
-		if (enabled_ops.empty() && blocked_operations > 0)
+		if (!exists_enabled_operation)
 		{
 			if (blocked_operations > 0)
 			{
@@ -761,8 +776,6 @@ namespace coyote
 #endif // COYOTE_LOG
 			throw ErrorCode::Success;
 		}
-
-		return enabled_ops;
 	}
 
 	bool Scheduler::next_boolean() noexcept
