@@ -4,7 +4,7 @@
 #ifndef RANDOM_STRATEGY_H
 #define RANDOM_STRATEGY_H
 
-#include <random>
+#include "random.h"
 #include "operations/operation.h"
 
 namespace coyote
@@ -12,8 +12,8 @@ namespace coyote
 	class RandomStrategy
 	{
 	private:
-		// A Mersenne Twister pseudo-random generator.
-		std::mt19937 generator;
+		// The pseudo-random generator.
+		Random generator;
 
 		// The seed used by the current iteration.
 		size_t iteration_seed;

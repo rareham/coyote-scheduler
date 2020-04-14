@@ -17,21 +17,18 @@ namespace coyote
 	size_t RandomStrategy::next_operation(const std::vector<std::shared_ptr<Operation>>& operations)
 	{
 		assert(!operations.empty());
-		std::uniform_int_distribution<int> distribution(0, operations.size() - 1);
-		const size_t index = distribution(generator);
+		const size_t index = generator.next() % operations.size();
 		return operations[index]->id;
 	}
 
 	bool RandomStrategy::next_boolean()
 	{
-		std::uniform_int_distribution<int> distribution(0, 1);
-		return distribution(generator);
+		return generator.next() & 1;
 	}
 
 	int RandomStrategy::next_integer(int max_value)
 	{
-		std::uniform_int_distribution<int> distribution(0, max_value - 1);
-		return distribution(generator);
+		return generator.next() % max_value;
 	}
 
 	size_t RandomStrategy::seed()

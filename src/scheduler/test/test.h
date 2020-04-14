@@ -7,6 +7,7 @@
 #include <chrono>
 #include <iostream>
 #include "scheduler.h"
+#include "strategies/random.h"
 
 void assert(bool predicate, std::string error)
 {
