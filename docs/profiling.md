@@ -18,3 +18,5 @@ To see the stacks, run:
 ```
 callgrind_annotate  callgrind.out.<PID>
 ```
+
+To see counts for each statement (rather than just at a function level) add the `--auto=yes` option. To see inclusive results add the `--inclusive=yes` option.
