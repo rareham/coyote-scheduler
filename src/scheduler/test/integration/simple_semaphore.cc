@@ -87,13 +87,13 @@ int main()
 
 	try
 	{
-		scheduler = new Scheduler();
+		scheduler = new Scheduler(345);
 
-		for (int i = 0; i < 100; i++)
+		for (int i = 0; i < 1; i++)
 		{
-#ifdef COYOTE_LOG
+#ifdef COYOTE_DEBUG_LOG
 			std::cout << "[test] iteration " << i << std::endl;
-#endif // COYOTE_LOG
+#endif // COYOTE_DEBUG_LOG
 			run_iteration();
 
 			shared_var = 0;

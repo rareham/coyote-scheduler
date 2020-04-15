@@ -14,11 +14,11 @@ namespace coyote
 	{
 	}
 
-	size_t RandomStrategy::next_operation(const std::vector<size_t>& operation_ids)
+	size_t RandomStrategy::next_operation(Operations& operations)
 	{
-		assert(!operation_ids.empty());
-		const size_t index = generator.next() % operation_ids.size();
-		return operation_ids[index];
+		assert(operations.size() != 0);
+		const size_t index = generator.next() % operations.size();
+		return operations[index];
 	}
 
 	bool RandomStrategy::next_boolean()

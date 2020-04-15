@@ -7,6 +7,7 @@
 #include <vector>
 #include "random.h"
 #include "operations/operation.h"
+#include "operations/operations.h"
 
 namespace coyote
 {
@@ -28,7 +29,7 @@ namespace coyote
 		RandomStrategy& operator=(RandomStrategy const&) = delete;
 
 		// Returns the next operation.
-		size_t next_operation(const std::vector<size_t>& operation_ids);
+		size_t next_operation(Operations& operations);
 
 		// Returns the next boolean choice.
 		bool next_boolean();

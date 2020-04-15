@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include <set>
 #include <thread>
 #include "test.h"
 
@@ -12,16 +11,23 @@ constexpr auto WORK_THREAD_2_ID = 2;
 
 Scheduler* scheduler;
 
-std::string curr_trace;
-std::set<std::string> coverage;
+int shared_var;
+bool race_found;
+size_t race_seed;
 
 void work_1()
 {
 	scheduler->start_operation(WORK_THREAD_1_ID);
 
-	curr_trace += "1";
+	shared_var = 1;
 	scheduler->schedule_next();
-	curr_trace += "2";
+	if (shared_var != 1)
+	{
+#ifdef COYOTE_DEBUG_LOG
+		std::cout << "[test] found race condition in thread 1." << std::endl;
+#endif // COYOTE_DEBUG_LOG
+		race_found = true;
+	}
 
 	scheduler->complete_operation(WORK_THREAD_1_ID);
 }
@@ -30,15 +36,24 @@ void work_2()
 {
 	scheduler->start_operation(WORK_THREAD_2_ID);
 
-	curr_trace += "3";
+	shared_var = 2;
 	scheduler->schedule_next();
-	curr_trace += "4";
+	if (shared_var != 2)
+	{
+#ifdef COYOTE_DEBUG_LOG
+		std::cout << "[test] found race condition in thread 2." << std::endl;
+#endif // COYOTE_DEBUG_LOG
+		race_found = true;
+	}
 
 	scheduler->complete_operation(WORK_THREAD_2_ID);
 }
 
 void run_iteration()
 {
+	shared_var = 0;
+	race_found = false;
+
 	scheduler->attach();
 
 	scheduler->create_operation(WORK_THREAD_1_ID);
@@ -49,19 +64,45 @@ void run_iteration()
 
 	scheduler->schedule_next();
 
-	if (curr_trace.size() == 4)
-	{
-		coverage.insert(curr_trace);
-	}
-
 	scheduler->join_operation(WORK_THREAD_1_ID);
 	scheduler->join_operation(WORK_THREAD_2_ID);
-
 	t1.join();
 	t2.join();
 
 	scheduler->detach();
 	assert(scheduler->error_code(), ErrorCode::Success);
+}
+
+void test()
+{
+	scheduler = new Scheduler();
+
+	for (int i = 0; i < 100; i++)
+	{
+#ifdef COYOTE_DEBUG_LOG
+		std::cout << "[test] iteration " << i << std::endl;
+#endif // COYOTE_DEBUG_LOG
+		run_iteration();
+		if (race_found)
+		{
+			race_seed = scheduler->seed();
+			break;
+		}
+	}
+
+	assert(race_found, "race was not found.");
+	delete scheduler;
+}
+
+void replay()
+{
+	scheduler = new Scheduler(race_seed);
+
+	std::cout << "[test] replaying using seed " << race_seed << std::endl;
+	run_iteration();
+
+	assert(race_found, "race was not found.");
+	delete scheduler;
 }
 
 int main()
@@ -71,18 +112,11 @@ int main()
 
 	try
 	{
-		scheduler = new Scheduler();
+		// Try to find the race condition.
+		test();
 
-		for (int i = 0; i < 100; i++)
-		{
-#ifdef COYOTE_LOG
-			std::cout << "[test] iteration " << i << std::endl;
-#endif // COYOTE_LOG
-			curr_trace = "";
-			run_iteration();
-		}
-
-		delete scheduler;
+		// Try to replay the bug.
+		replay();
 	}
 	catch (std::string error)
 	{

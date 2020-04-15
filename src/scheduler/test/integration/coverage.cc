@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#include <set>
 #include <thread>
 #include "test.h"
 
@@ -11,15 +12,28 @@ constexpr auto WORK_THREAD_2_ID = 2;
 
 Scheduler* scheduler;
 
+std::string curr_trace;
+std::set<std::string> coverage;
+
 void work_1()
 {
 	scheduler->start_operation(WORK_THREAD_1_ID);
+
+	curr_trace += "1";
+	scheduler->schedule_next();
+	curr_trace += "2";
+
 	scheduler->complete_operation(WORK_THREAD_1_ID);
 }
 
 void work_2()
 {
 	scheduler->start_operation(WORK_THREAD_2_ID);
+
+	curr_trace += "3";
+	scheduler->schedule_next();
+	curr_trace += "4";
+
 	scheduler->complete_operation(WORK_THREAD_2_ID);
 }
 
@@ -33,8 +47,16 @@ void run_iteration()
 	scheduler->create_operation(WORK_THREAD_2_ID);
 	std::thread t2(work_2);
 
+	scheduler->schedule_next();
+
+	if (curr_trace.size() == 4)
+	{
+		coverage.insert(curr_trace);
+	}
+
 	scheduler->join_operation(WORK_THREAD_1_ID);
 	scheduler->join_operation(WORK_THREAD_2_ID);
+
 	t1.join();
 	t2.join();
 
@@ -53,9 +75,10 @@ int main()
 
 		for (int i = 0; i < 100; i++)
 		{
-#ifdef COYOTE_LOG
+#ifdef COYOTE_DEBUG_LOG
 			std::cout << "[test] iteration " << i << std::endl;
-#endif // COYOTE_LOG
+#endif // COYOTE_DEBUG_LOG
+			curr_trace = "";
 			run_iteration();
 		}
 
