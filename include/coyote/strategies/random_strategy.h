@@ -1,13 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#ifndef RANDOM_STRATEGY_H
-#define RANDOM_STRATEGY_H
+#ifndef COYOTE_RANDOM_STRATEGY_H
+#define COYOTE_RANDOM_STRATEGY_H
 
-#include <vector>
 #include "random.h"
-#include "operations/operation.h"
-#include "operations/operations.h"
+#include "../operations/operations.h"
 
 namespace coyote
 {
@@ -22,6 +20,7 @@ namespace coyote
 
 	public:
 		RandomStrategy(size_t seed) noexcept;
+
 		RandomStrategy(RandomStrategy&& strategy) = delete;
 		RandomStrategy(RandomStrategy const&) = delete;
 
@@ -45,4 +44,4 @@ namespace coyote
 	};
 }
 
-#endif // RANDOM_STRATEGY_H
+#endif // COYOTE_RANDOM_STRATEGY_H

@@ -14,4 +14,7 @@ if(MSVC)
     add_compile_options(/utf-8)
 endif()
 
-add_subdirectory(src/scheduler)
+add_subdirectory(src)
+if(CMAKE_TESTING_ENABLED)
+    add_subdirectory(test)
+endif()

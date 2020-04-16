@@ -1,10 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include <cassert>
-#include <iostream>
-#include <map>
-#include "random_strategy.h"
+#include "strategies/random_strategy.h"
 
 namespace coyote
 {
@@ -16,7 +13,6 @@ namespace coyote
 
 	size_t RandomStrategy::next_operation(Operations& operations)
 	{
-		assert(operations.size() != 0);
 		const size_t index = generator.next() % operations.size();
 		return operations[index];
 	}

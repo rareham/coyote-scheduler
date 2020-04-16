@@ -1,12 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#ifndef OPERATION_H
-#define OPERATION_H
+#ifndef COYOTE_OPERATION_H
+#define COYOTE_OPERATION_H
 
 #include <condition_variable>
-#include <cstdint>
-#include <memory>
 #include <unordered_set>
 #include <vector>
 #include "operation_status.h"
@@ -39,6 +37,7 @@ namespace coyote
 		bool is_scheduled;
 
 		Operation(size_t operation_id) noexcept;
+
 		Operation(Operation&& op) = delete;
 		Operation(Operation const&) = delete;
 
@@ -65,4 +64,4 @@ namespace coyote
 	};
 }
 
-#endif // OPERATION_H
+#endif // COYOTE_OPERATION_H

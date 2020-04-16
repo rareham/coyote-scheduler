@@ -5,20 +5,9 @@
 
 namespace coyote
 {
-    struct ErrorCategory : std::error_category
+    std::string error_message(ErrorCode error_code)
     {
-        const char* name() const noexcept override;
-        std::string message(int ev) const override;
-    };
-
-    const char* ErrorCategory::name() const noexcept
-    {
-        return "coyote";
-    }
-
-    std::string ErrorCategory::message(int ev) const
-    {
-        switch (static_cast<ErrorCode>(ev))
+        switch (error_code)
         {
         case ErrorCode::Success:
             return "success";
@@ -54,11 +43,4 @@ namespace coyote
             return "(unknown error)";
         }
     }
-
-    const ErrorCategory error_category{};
-}
-
-std::error_code coyote::make_error_code(ErrorCode error_code)
-{
-    return { static_cast<int>(error_code), coyote::error_category };
 }

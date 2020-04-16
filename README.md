@@ -12,18 +12,33 @@ To learn more about the research behind our technology, check out our published 
 [here](https://microsoft.github.io/coyote/learn/resources/publications).
 
 ## How to build
-On Windows, open the project as a Visual Studio 2019 CMake project by selecting the CMakeLists.txt
-file and then build the project.
-
 On Linux, run the following from the root directory:
-```
+```bash
 mkdir build
 cd build
-cmake -G "Ninja" ..
+cmake -G "Ninja" -DCMAKE_BUILD_TYPE=Release  ..
 ninja
 ```
 
-To build for release under Linux, add to the `-DCMAKE_BUILD_TYPE=Release` flag when invoking `cmake`.
+To build for debug under Linux, add to the `-DCMAKE_BUILD_TYPE=Debug` flag when invoking `cmake`.
+
+On Windows, open the project as a Visual Studio 2019 CMake project by selecting the CMakeLists.txt
+file and then build the project.
+
+After building the project, you can find a static and shared library in `bin`.
+
+## How to use
+To use the Coyote scheduler in a C++ project, link the static or shared library to your project, and
+include the following header file (from the [`include`](./include) directory):
+```c++
+#include "coyote/scheduler.h"
+```
+
+Then use the Coyote scheduling APIs to instrument your code similar to our examples
+[here](./test/integration).
+
+To use the FFI from a language that requires importing a `dll` or `so`, follow the build
+instructions below to build the shared library.
 
 ## Contributing
 This project welcomes contributions and suggestions. Most contributions require you to agree to a

@@ -5,10 +5,7 @@
 #include <iostream>
 #include <vector>
 #include "scheduler.h"
-
-#ifndef COYOTE_DEBUG_LOG
-//#define COYOTE_DEBUG_LOG
-#endif
+#include "operations/operation_status.h"
 
 namespace coyote
 {
@@ -29,7 +26,7 @@ namespace coyote
 	{
 	}
 
-	std::error_code Scheduler::attach() noexcept
+	ErrorCode Scheduler::attach() noexcept
 	{
 		try
 		{
@@ -53,8 +50,8 @@ namespace coyote
 				strategy->prepare_next_iteration();
 			}
 
-			create_operation(main_operation_id, lock);
-			start_operation(main_operation_id, lock);
+			create_operation_inner(main_operation_id);
+			start_operation_inner(main_operation_id, lock);
 		}
 		catch (ErrorCode error_code)
 		{
@@ -68,7 +65,7 @@ namespace coyote
 		return last_error_code;
 	}
 
-	std::error_code Scheduler::detach() noexcept
+	ErrorCode Scheduler::detach() noexcept
 	{
 		try
 		{
@@ -84,23 +81,23 @@ namespace coyote
 
 			is_attached = false;
 
-			std::shared_ptr<Operation> op(operation_map.at(main_operation_id));
-			op->status = OperationStatus::Completed;
-			operations.disable(op->id);
+			Operation* main_op = operation_map.at(main_operation_id).get();
+			main_op->status = OperationStatus::Completed;
+			operations.disable(main_op->id);
 
 			for (auto& kvp : operation_map)
 			{
-				Operation* op = kvp.second.get();
-				if (op->status != OperationStatus::Completed)
+				Operation* next_op = kvp.second.get();
+				if (next_op->status != OperationStatus::Completed)
 				{
 #ifdef COYOTE_DEBUG_LOG
-					std::cout << "[coyote::detach] canceling operation " << op->id << std::endl;
+					std::cout << "[coyote::detach] canceling operation " << next_op->id << std::endl;
 #endif // COYOTE_DEBUG_LOG
 					// If the operation has not already completed, then cancel it.
-					op->is_scheduled = true;
-					op->status = OperationStatus::Completed;
-					operations.disable(op->id);
-					op->cv.notify_all();
+					next_op->is_scheduled = true;
+					next_op->status = OperationStatus::Completed;
+					operations.disable(next_op->id);
+					next_op->cv.notify_all();
 				}
 			}
 
@@ -121,7 +118,7 @@ namespace coyote
 		return last_error_code;
 	}
 
-	std::error_code Scheduler::create_operation(size_t operation_id) noexcept
+	ErrorCode Scheduler::create_operation(size_t operation_id) noexcept
 	{
 		try
 		{
@@ -139,7 +136,7 @@ namespace coyote
 				throw ErrorCode::MainOperationExplicitlyCreated;
 			}
 
-			create_operation(operation_id, lock);
+			create_operation_inner(operation_id);
 		}
 		catch (ErrorCode error_code)
 		{
@@ -153,28 +150,7 @@ namespace coyote
 		return last_error_code;
 	}
 
-	void Scheduler::create_operation(size_t operation_id, std::unique_lock<std::mutex>& lock)
-	{
-		auto it = operation_map.find(operation_id);
-		if (it != operation_map.end())
-		{
-			throw ErrorCode::DuplicateOperation;
-		}
-
-		auto result = operation_map.insert(std::pair<size_t, std::shared_ptr<Operation>>(
-			operation_id, std::make_shared<Operation>(operation_id)));
-		if (operation_map.size() == 1)
-		{
-			// This is the first operation, so schedule it.
-			scheduled_operation_id = operation_id;
-			result.first->second->is_scheduled = true;
-		}
-
-		// Increment the count of created operations that have not yet started.
-		pending_start_operation_count += 1;
-	}
-
-	std::error_code Scheduler::start_operation(size_t operation_id) noexcept
+	ErrorCode Scheduler::start_operation(size_t operation_id) noexcept
 	{
 		try
 		{
@@ -192,7 +168,7 @@ namespace coyote
 				throw ErrorCode::MainOperationExplicitlyStarted;
 			}
 
-			start_operation(operation_id, lock);
+			start_operation_inner(operation_id, lock);
 		}
 		catch (ErrorCode error_code)
 		{
@@ -206,59 +182,7 @@ namespace coyote
 		return last_error_code;
 	}
 
-	void Scheduler::start_operation(size_t operation_id, std::unique_lock<std::mutex>& lock)
-	{
-		// TODO: Check pending counter was incremented.
-
-		auto it = operation_map.find(operation_id);
-		if (it == operation_map.end())
-		{
-#ifdef COYOTE_DEBUG_LOG
-			std::cout << "[coyote::start_operation] not existing operation " << operation_id << std::endl;
-#endif // COYOTE_DEBUG_LOG
-			throw ErrorCode::NotExistingOperation;
-		}
-
-		std::shared_ptr<Operation> op(it->second);
-		if (op->status == OperationStatus::Completed)
-		{
-			throw ErrorCode::OperationAlreadyCompleted;
-		}
-		else if (op->status != OperationStatus::None)
-		{
-			throw ErrorCode::OperationAlreadyStarted;
-		}
-
-		// Decrement the count of pending operations.
-		pending_start_operation_count -= 1;
-#ifdef COYOTE_DEBUG_LOG
-		std::cout << "[coyote::start_operation] " << pending_start_operation_count << " operations pending" << std::endl;
-#endif // COYOTE_DEBUG_LOG
-		if (pending_start_operation_count == 0)
-		{
-			// If no pending operations remain, then release schedule next.
-			pending_operations_cv.notify_all();
-		}
-
-		if (op->status != OperationStatus::Completed)
-		{
-			op->status = OperationStatus::Enabled;
-			operations.insert(op->id);
-			op->cv.notify_all();
-			while (!op->is_scheduled)
-			{
-#ifdef COYOTE_DEBUG_LOG
-				std::cout << "[coyote::start_operation] pausing operation " << operation_id << std::endl;
-#endif // COYOTE_DEBUG_LOG
-				op->cv.wait(lock);
-#ifdef COYOTE_DEBUG_LOG
-				std::cout << "[coyote::start_operation] resuming operation " << operation_id << std::endl;
-#endif // COYOTE_DEBUG_LOG
-			}
-		}
-	}
-
-	std::error_code Scheduler::join_operation(size_t operation_id) noexcept
+	ErrorCode Scheduler::join_operation(size_t operation_id) noexcept
 	{
 		try
 		{
@@ -281,17 +205,17 @@ namespace coyote
 				throw ErrorCode::NotExistingOperation;
 			}
 
-			std::shared_ptr<Operation> join_op(it->second);
+			Operation* join_op = it->second.get();
 			if (join_op->status != OperationStatus::Completed)
 			{
 				join_op->blocked_operation_ids.insert(scheduled_operation_id);
 
-				std::shared_ptr<Operation> op(operation_map.at(scheduled_operation_id));
-				op->join_operation(operation_id);
-				operations.disable(op->id);
+				Operation* scheduled_op = operation_map.at(scheduled_operation_id).get();
+				scheduled_op->join_operation(operation_id);
+				operations.disable(scheduled_op->id);
 
 				// Waiting for the resource to be released, so schedule the next enabled operation.
-				schedule_next(lock);
+				schedule_next_inner(lock);
 			}
 #ifdef COYOTE_DEBUG_LOG
 			else
@@ -312,7 +236,7 @@ namespace coyote
 		return last_error_code;
 	}
 
-	std::error_code Scheduler::join_operations(const size_t* operation_ids, size_t size, bool wait_all) noexcept
+	ErrorCode Scheduler::join_operations(const size_t* operation_ids, size_t size, bool wait_all) noexcept
 	{
 		try
 		{
@@ -348,7 +272,7 @@ namespace coyote
 					throw ErrorCode::NotExistingOperation;
 				}
 
-				std::shared_ptr<Operation> join_op(it->second);
+				Operation* join_op = it->second.get();
 				if (join_op->status != OperationStatus::Completed)
 				{
 					join_op->blocked_operation_ids.insert(scheduled_operation_id);
@@ -364,12 +288,12 @@ namespace coyote
 
 			if (!join_operations.empty())
 			{
-				std::shared_ptr<Operation> op(operation_map.at(scheduled_operation_id));
-				op->join_operations(join_operations, wait_all);
-				operations.disable(op->id);
+				Operation* scheduled_op = operation_map.at(scheduled_operation_id).get();
+				scheduled_op->join_operations(join_operations, wait_all);
+				operations.disable(scheduled_op->id);
 
 				// Waiting for the resources to be released, so schedule the next enabled operation.
-				schedule_next(lock);
+				schedule_next_inner(lock);
 			}
 		}
 		catch (ErrorCode error_code)
@@ -384,7 +308,7 @@ namespace coyote
 		return last_error_code;
 	}
 
-	std::error_code Scheduler::complete_operation(size_t operation_id) noexcept
+	ErrorCode Scheduler::complete_operation(size_t operation_id) noexcept
 	{
 		try
 		{
@@ -411,7 +335,7 @@ namespace coyote
 				throw ErrorCode::NotExistingOperation;
 			}
 
-			std::shared_ptr<Operation> op(it->second);
+			Operation* op = it->second.get();
 			if (op->status == OperationStatus::Completed)
 			{
 				throw ErrorCode::OperationAlreadyCompleted;
@@ -422,12 +346,12 @@ namespace coyote
 			}
 
 			op->status = OperationStatus::Completed;
-			operations.remove(op->id);
+			operations.disable(op->id);
 
 			// Notify any operations that are waiting to join this operation.
 			for (const auto& blocked_id : op->blocked_operation_ids)
 			{
-				std::shared_ptr<Operation> blocked_op(operation_map.at(blocked_id));
+				Operation* blocked_op = operation_map.at(blocked_id).get();
 				if (blocked_op->on_join_operation(operation_id))
 				{
 					operations.enable(blocked_op->id);
@@ -435,7 +359,7 @@ namespace coyote
 			}
 
 			// The current operation has completed, so schedule the next enabled operation.
-			schedule_next(lock);
+			schedule_next_inner(lock);
 		}
 		catch (ErrorCode error_code)
 		{
@@ -449,7 +373,7 @@ namespace coyote
 		return last_error_code;
 	}
 
-	std::error_code Scheduler::create_resource(size_t resource_id) noexcept
+	ErrorCode Scheduler::create_resource(size_t resource_id) noexcept
 	{
 		try
 		{
@@ -484,7 +408,7 @@ namespace coyote
 		return last_error_code;
 	}
 
-	std::error_code Scheduler::wait_resource(size_t resource_id) noexcept
+	ErrorCode Scheduler::wait_resource(size_t resource_id) noexcept
 	{
 		try
 		{
@@ -498,9 +422,9 @@ namespace coyote
 				throw ErrorCode::ClientNotAttached;
 			}
 
-			std::shared_ptr<Operation> op(operation_map.at(scheduled_operation_id));
-			op->wait_resource_signal(resource_id);
-			operations.disable(op->id);
+			Operation* scheduled_op = operation_map.at(scheduled_operation_id).get();
+			scheduled_op->wait_resource_signal(resource_id);
+			operations.disable(scheduled_op->id);
 
 			auto it = resource_map.find(resource_id);
 			if (it == resource_map.end())
@@ -512,7 +436,7 @@ namespace coyote
 			blocked_operation_ids->insert(scheduled_operation_id);
 
 			// Waiting for the resource to be released, so schedule the next enabled operation.
-			schedule_next(lock);
+			schedule_next_inner(lock);
 		}
 		catch (ErrorCode error_code)
 		{
@@ -526,7 +450,7 @@ namespace coyote
 		return last_error_code;
 	}
 
-	std::error_code Scheduler::wait_resources(const size_t* resource_ids, size_t size, bool wait_all) noexcept
+	ErrorCode Scheduler::wait_resources(const size_t* resource_ids, size_t size, bool wait_all) noexcept
 	{
 		try
 		{
@@ -549,9 +473,9 @@ namespace coyote
 				throw ErrorCode::ClientNotAttached;
 			}
 
-			std::shared_ptr<Operation> op(operation_map.at(scheduled_operation_id));
-			op->wait_resource_signals(resource_ids, size, wait_all);
-			operations.disable(op->id);
+			Operation* scheduled_op = operation_map.at(scheduled_operation_id).get();
+			scheduled_op->wait_resource_signals(resource_ids, size, wait_all);
+			operations.disable(scheduled_op->id);
 
 			for (int i = 0; i < size; i++)
 			{
@@ -567,7 +491,7 @@ namespace coyote
 			}
 
 			// Waiting for the resources to be released, so schedule the next enabled operation.
-			schedule_next(lock);
+			schedule_next_inner(lock);
 		}
 		catch (ErrorCode error_code)
 		{
@@ -581,7 +505,7 @@ namespace coyote
 		return last_error_code;
 	}
 
-	std::error_code Scheduler::signal_resource(size_t resource_id) noexcept
+	ErrorCode Scheduler::signal_resource(size_t resource_id) noexcept
 	{
 		try
 		{
@@ -604,7 +528,7 @@ namespace coyote
 			std::shared_ptr<std::unordered_set<size_t>> blocked_operation_ids(it->second);
 			for (const auto& blocked_id : *blocked_operation_ids)
 			{
-				std::shared_ptr<Operation> blocked_op(operation_map.at(blocked_id));
+				Operation* blocked_op = operation_map.at(blocked_id).get();
 				if (blocked_op->on_resource_signal(resource_id))
 				{
 					operations.enable(blocked_op->id);
@@ -623,7 +547,7 @@ namespace coyote
 		return last_error_code;
 	}
 
-	std::error_code Scheduler::delete_resource(size_t resource_id) noexcept
+	ErrorCode Scheduler::delete_resource(size_t resource_id) noexcept
 	{
 		try
 		{
@@ -657,7 +581,7 @@ namespace coyote
 		return last_error_code;
 	}
 
-	std::error_code Scheduler::schedule_next() noexcept
+	ErrorCode Scheduler::schedule_next() noexcept
 	{
 		try
 		{
@@ -668,7 +592,7 @@ namespace coyote
 				throw ErrorCode::ClientNotAttached;
 			}
 
-			schedule_next(lock);
+			schedule_next_inner(lock);
 		}
 		catch (ErrorCode error_code)
 		{
@@ -682,7 +606,110 @@ namespace coyote
 		return last_error_code;
 	}
 
-	void Scheduler::schedule_next(std::unique_lock<std::mutex>& lock)
+	bool Scheduler::next_boolean() noexcept
+	{
+#ifdef COYOTE_DEBUG_LOG
+		std::cout << "[coyote::next_boolean] " << std::endl;
+#endif // COYOTE_DEBUG_LOG
+		return strategy->next_boolean();
+	}
+
+	int Scheduler::next_integer(int max_value) noexcept
+	{
+#ifdef COYOTE_DEBUG_LOG
+		std::cout << "[coyote::next_integer] " << std::endl;
+#endif // COYOTE_DEBUG_LOG
+		return strategy->next_integer(max_value);
+	}
+
+	size_t Scheduler::seed() noexcept
+	{
+		return strategy->seed();
+	}
+
+	ErrorCode Scheduler::error_code() noexcept
+	{
+		return last_error_code;
+	}
+
+	void Scheduler::create_operation_inner(size_t operation_id)
+	{
+		auto it = operation_map.find(operation_id);
+		if (it != operation_map.end())
+		{
+			throw ErrorCode::DuplicateOperation;
+		}
+
+		auto result = operation_map.insert(std::pair<size_t, std::unique_ptr<Operation>>(
+			operation_id, std::make_unique<Operation>(operation_id)));
+		if (operation_map.size() == 1)
+		{
+			// This is the first operation, so schedule it.
+			scheduled_operation_id = operation_id;
+			result.first->second->is_scheduled = true;
+		}
+
+		// Increment the count of created operations that have not yet started.
+		pending_start_operation_count += 1;
+	}
+
+	void Scheduler::start_operation_inner(size_t operation_id, std::unique_lock<std::mutex>& lock)
+	{
+		// TODO: Check pending counter was incremented.
+
+		auto it = operation_map.find(operation_id);
+		if (it == operation_map.end())
+		{
+#ifdef COYOTE_DEBUG_LOG
+			std::cout << "[coyote::start_operation] not existing operation " << operation_id << std::endl;
+#endif // COYOTE_DEBUG_LOG
+			throw ErrorCode::NotExistingOperation;
+		}
+
+		Operation* op = it->second.get();
+		if (op->status == OperationStatus::Completed)
+		{
+			throw ErrorCode::OperationAlreadyCompleted;
+		}
+		else if (op->status != OperationStatus::None)
+		{
+			throw ErrorCode::OperationAlreadyStarted;
+		}
+
+		// Decrement the count of pending operations.
+		pending_start_operation_count -= 1;
+#ifdef COYOTE_DEBUG_LOG
+		std::cout << "[coyote::start_operation] " << pending_start_operation_count << " operations pending" << std::endl;
+#endif // COYOTE_DEBUG_LOG
+		if (pending_start_operation_count == 0)
+		{
+			// If no pending operations remain, then release schedule next.
+			pending_operations_cv.notify_all();
+		}
+
+		if (op->status != OperationStatus::Completed)
+		{
+			op->status = OperationStatus::Enabled;
+			operations.insert(op->id);
+			op->cv.notify_all();
+			while (!op->is_scheduled)
+			{
+#ifdef COYOTE_DEBUG_LOG
+				std::cout << "[coyote::start_operation] pausing operation " << operation_id << std::endl;
+#endif // COYOTE_DEBUG_LOG
+				op->cv.wait(lock);
+#ifdef COYOTE_DEBUG_LOG
+				std::cout << "[coyote::start_operation] resuming operation " << operation_id << std::endl;
+#endif // COYOTE_DEBUG_LOG
+				if (!is_attached)
+				{
+					throw ErrorCode::ClientNotAttached;
+				}
+			}
+		}
+	}
+
+	void Scheduler::schedule_next_inner(std::unique_lock<std::mutex>& lock)
 	{
 #ifdef COYOTE_DEBUG_LOG
 		std::cout << "[coyote::schedule_next] current operation " << scheduled_operation_id << std::endl;
@@ -717,7 +744,7 @@ namespace coyote
 
 		// Ask the strategy for the next operation to schedule.
 		size_t next_id = strategy->next_operation(operations);
-		std::shared_ptr<Operation> next_op(operation_map.at(next_id));
+		Operation* next_op = operation_map.at(next_id).get();
 
 		const size_t previous_id = scheduled_operation_id;
 		scheduled_operation_id = next_id;
@@ -733,7 +760,7 @@ namespace coyote
 			next_op->cv.notify_all();
 
 			// Pause the previous operation.
-			std::shared_ptr<Operation> previous_op(operation_map.at(previous_id));
+			Operation* previous_op = operation_map.at(previous_id).get();
 			if (previous_op->status != OperationStatus::Completed)
 			{
 				previous_op->is_scheduled = false;
@@ -748,34 +775,12 @@ namespace coyote
 #ifdef COYOTE_DEBUG_LOG
 					std::cout << "[coyote::schedule_next] resuming operation " << previous_id << std::endl;
 #endif // COYOTE_DEBUG_LOG
+					if (!is_attached)
+					{
+						throw ErrorCode::ClientNotAttached;
+					}
 				}
 			}
 		}
-	}
-
-	bool Scheduler::next_boolean() noexcept
-	{
-#ifdef COYOTE_DEBUG_LOG
-		std::cout << "[coyote::next_boolean] " << std::endl;
-#endif // COYOTE_DEBUG_LOG
-		return strategy->next_boolean();
-	}
-
-	int Scheduler::next_integer(int max_value) noexcept
-	{
-#ifdef COYOTE_DEBUG_LOG
-		std::cout << "[coyote::next_integer] " << std::endl;
-#endif // COYOTE_DEBUG_LOG
-		return strategy->next_integer(max_value);
-	}
-
-	size_t Scheduler::seed() noexcept
-	{
-		return strategy->seed();
-	}
-
-	std::error_code Scheduler::error_code() noexcept
-	{
-		return last_error_code;
 	}
 }

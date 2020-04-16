@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#ifndef ERROR_CODE_H
-#define ERROR_CODE_H
+#ifndef COYOTE_ERROR_CODE_H
+#define COYOTE_ERROR_CODE_H
 
-#include <system_error>
+#include <string>
 
 namespace coyote
 {
@@ -27,13 +27,7 @@ namespace coyote
         ClientNotAttached = 401
     };
 
-    std::error_code make_error_code(ErrorCode error_code);
+    std::string error_message(ErrorCode error_code);
 }
 
-namespace std
-{
-    template <>
-    struct is_error_code_enum<coyote::ErrorCode> : true_type {};
-}
-
-#endif // ERROR_CODE_H
+#endif // COYOTE_ERROR_CODE_H

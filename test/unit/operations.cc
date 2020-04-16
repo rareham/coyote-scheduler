@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 #include "test.h"
-#include "operations/operations.h"
+#include "coyote/operations/operations.h"
 
 using namespace coyote;
 

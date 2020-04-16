@@ -1,15 +1,15 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#ifndef SCHEDULER_H
-#define SCHEDULER_H
+#ifndef COYOTE_SCHEDULER_H
+#define COYOTE_SCHEDULER_H
 
 #include <condition_variable>
 #include <cstdint>
 #include <map>
 #include <memory>
 #include <unordered_set>
-#include "errors/error_code.h"
+#include "error_code.h"
 #include "operations/operation.h"
 #include "operations/operations.h"
 #include "strategies/random_strategy.h"
@@ -23,7 +23,7 @@ namespace coyote
 		std::unique_ptr<RandomStrategy> strategy;
 
 		// Map from unique operation ids to operations.
-		std::map<size_t, std::shared_ptr<Operation>> operation_map;
+		std::map<size_t, std::unique_ptr<Operation>> operation_map;
 
 		// Vector of enabled and disabled operation ids.
 		Operations operations;
@@ -54,7 +54,7 @@ namespace coyote
 		size_t iteration_count;
 
 		// The last assigned error code, else success.
-		std::error_code last_error_code;
+		ErrorCode last_error_code;
 
 	public:
 		Scheduler() noexcept;
@@ -62,45 +62,45 @@ namespace coyote
 
 		// Attaches to the scheduler. This should be called at the beginning of a testing iteration.
 		// It creates a main operation with id '0'.
-		std::error_code attach() noexcept;
+		ErrorCode attach() noexcept;
 
 		// Detaches from the scheduler. This should be called at the end of a testing iteration.
 		// It completes the main operation with id '0' and releases all controlled operations. 
-		std::error_code detach() noexcept;
+		ErrorCode detach() noexcept;
 
 		// Creates a new operation with the specified id.
-		std::error_code create_operation(size_t operation_id) noexcept;
+		ErrorCode create_operation(size_t operation_id) noexcept;
 		
 		// Starts executing the operation with the specified id.
-		std::error_code start_operation(size_t operation_id) noexcept;
+		ErrorCode start_operation(size_t operation_id) noexcept;
 
 		// Waits until the operation with the specified id has completed.
-		std::error_code join_operation(size_t operation_id) noexcept;
+		ErrorCode join_operation(size_t operation_id) noexcept;
 
 		// Waits until the operations with the specified ids have completed.
-		std::error_code join_operations(const size_t* operation_ids, size_t size, bool wait_all) noexcept;
+		ErrorCode join_operations(const size_t* operation_ids, size_t size, bool wait_all) noexcept;
 
 		// Completes executing the operation with the specified id and schedules the next operation.
-		std::error_code complete_operation(size_t operation_id) noexcept;
+		ErrorCode complete_operation(size_t operation_id) noexcept;
 
 		// Creates a new resource with the specified id.
-		std::error_code create_resource(size_t resource_id) noexcept;
+		ErrorCode create_resource(size_t resource_id) noexcept;
 
 		// Waits the resource with the specified id to become available and schedules the next operation.
-		std::error_code wait_resource(size_t resource_id) noexcept;
+		ErrorCode wait_resource(size_t resource_id) noexcept;
 		
 		// Waits the resources with the specified ids to become available and schedules the next operation.
-		std::error_code wait_resources(const size_t* resource_ids, size_t size, bool wait_all) noexcept;
+		ErrorCode wait_resources(const size_t* resource_ids, size_t size, bool wait_all) noexcept;
         
 		// Signals the resource with the specified id is available.
-		std::error_code signal_resource(size_t resource_id) noexcept;
+		ErrorCode signal_resource(size_t resource_id) noexcept;
 
 		// Deletes the resource with the specified id.
-		std::error_code delete_resource(size_t resource_id) noexcept;
+		ErrorCode delete_resource(size_t resource_id) noexcept;
 
 		// Schedules the next operation, which can include the currently executing operation.
 		// Only operations that are not blocked nor completed can be scheduled.
-		std::error_code schedule_next() noexcept;
+		ErrorCode schedule_next() noexcept;
 
 		// Returns a controlled nondeterministic boolean value.
 		bool next_boolean() noexcept;
@@ -112,7 +112,7 @@ namespace coyote
 		size_t seed() noexcept;
 
 		// Returns the last error code, if there is one assigned.
-		std::error_code error_code() noexcept;
+		ErrorCode error_code() noexcept;
 
 	private:
 		Scheduler(Scheduler&& op) = delete;
@@ -121,10 +121,10 @@ namespace coyote
 		Scheduler& operator=(Scheduler&& op) = delete;
 		Scheduler& operator=(Scheduler const&) = delete;
 
-		void create_operation(size_t operation_id, std::unique_lock<std::mutex>& lock);
-		void start_operation(size_t operation_id, std::unique_lock<std::mutex>& lock);
-		void schedule_next(std::unique_lock<std::mutex>& lock);
+		void create_operation_inner(size_t operation_id);
+		void start_operation_inner(size_t operation_id, std::unique_lock<std::mutex>& lock);
+		void schedule_next_inner(std::unique_lock<std::mutex>& lock);
 	};
 }
 
-#endif // SCHEDULER_H
+#endif // COYOTE_SCHEDULER_H

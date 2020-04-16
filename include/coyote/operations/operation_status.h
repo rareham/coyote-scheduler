@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#ifndef OPERATION_STATUS_H
-#define OPERATION_STATUS_H
+#ifndef COYOTE_OPERATION_STATUS_H
+#define COYOTE_OPERATION_STATUS_H
 
 namespace coyote
 {
@@ -18,4 +18,4 @@ namespace coyote
     };
 }
 
-#endif // OPERATION_STATUS_H
+#endif // COYOTE_OPERATION_STATUS_H

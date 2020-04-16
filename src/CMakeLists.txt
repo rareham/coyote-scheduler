@@ -1,10 +1,12 @@
-﻿include_directories(.)
+﻿include_directories("${CMAKE_SOURCE_DIR}/include/coyote")
 
 set(src_files
+    "error_code.cc"
     "ffi.cc"
     "scheduler.cc"
-    "errors/error_code.cc"
     "operations/operation.cc"
+    "operations/operations.cc"
+    "strategies/random.cc"
     "strategies/random_strategy.cc")
 
 add_library(coyote SHARED ${src_files})
@@ -22,8 +24,4 @@ set_target_properties(coyote_static PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
 if(CMAKE_BUILD_TYPE MATCHES Debug)
     target_compile_definitions(coyote_static PRIVATE COYOTE_DEBUG_LOG)
-endif()
-
-if(CMAKE_TESTING_ENABLED)
-    add_subdirectory(test)
 endif()
