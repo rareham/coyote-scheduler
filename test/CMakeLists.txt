@@ -1,5 +1,5 @@
 ﻿include_directories(".")
-include_directories("${CMAKE_SOURCE_DIR}/include")
+include_directories("../include")
 
 add_subdirectory(unit)
 add_subdirectory(integration)

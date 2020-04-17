@@ -1,4 +1,4 @@
-﻿include_directories("${CMAKE_SOURCE_DIR}/include/coyote")
+﻿include_directories("../include/coyote")
 
 set(src_files
     "error_code.cc"
