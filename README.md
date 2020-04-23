@@ -1,4 +1,4 @@
-An experimental C++ library for **language-agnostic systematic concurrency testing** by the
+A C++ library for **language-agnostic systematic concurrency testing** by the
 [Coyote](https://microsoft.github.io/coyote/) team in [Microsoft
 Research](https://www.microsoft.com/en-us/research/).
 
