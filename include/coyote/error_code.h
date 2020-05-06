@@ -21,7 +21,6 @@ namespace coyote
         OperationNotStarted = 205,
         OperationAlreadyStarted = 206,
         OperationAlreadyCompleted = 207,
-        OperationNotWaitingResource = 208,
         DuplicateResource = 300,
         NotExistingResource = 301,
         ClientAttached = 400,
