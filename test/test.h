@@ -22,7 +22,7 @@ void assert(ErrorCode actual, ErrorCode expected)
 {
 	if (actual != expected)
 	{
-		throw "expected the '" + error_message(actual) + "' error code, but received '" + error_message(actual) + "'.";
+		throw "expected the '" + error_message(expected) + "' error code, but received '" + error_message(actual) + "'.";
 	}
 }
 
