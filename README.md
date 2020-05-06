@@ -1,3 +1,5 @@
+[![Build status](https://dev.azure.com/foundry99/Coyote/_apis/build/status/Native/CoyoteScheduler-Linux-CI)](https://dev.azure.com/foundry99/Coyote/_build/latest?definitionId=114)
+
 A C++ library for **language-agnostic systematic concurrency testing** by the
 [Coyote](https://microsoft.github.io/coyote/) team in [Microsoft
 Research](https://www.microsoft.com/en-us/research/).
