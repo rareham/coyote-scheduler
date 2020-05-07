@@ -14,20 +14,18 @@ To learn more about the research behind our technology, check out our published 
 [here](https://microsoft.github.io/coyote/learn/resources/publications).
 
 ## How to build
-On Linux, run the following from the root directory:
+On Linux, run the following bash script from the root directory:
 ```bash
-mkdir build
-cd build
-cmake -G "Ninja" -DCMAKE_BUILD_TYPE=Release  ..
-ninja
+./scripts/build-linux.sh
 ```
-
-To build for debug under Linux, add to the `-DCMAKE_BUILD_TYPE=Debug` flag when invoking `cmake`.
 
 On Windows, open the project as a Visual Studio 2019 CMake project by selecting the CMakeLists.txt
 file and then build the project.
 
 After building the project, you can find a static and shared library in `bin`.
+
+For more detailed building instructions (e.g. if you want to build without the scripts), read
+[here](./docs/building.md).
 
 ## How to use
 To use the Coyote scheduler in a C++ project, link the static or shared library to your project, and
