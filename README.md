@@ -19,8 +19,10 @@ On Linux, run the following bash script from the root directory:
 ./scripts/build-linux.sh
 ```
 
-On Windows, open the project as a Visual Studio 2019 CMake project by selecting the CMakeLists.txt
-file and then build the project.
+On Windows, run the following script for a VS 2019 developer command prompt:
+```bat
+scripts\build-windows.bat
+```
 
 After building the project, you can find a static and shared library in `bin`.
 

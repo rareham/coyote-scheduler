@@ -18,4 +18,7 @@ then
 else
   echo "Result: one or more tests failed."
 fi
+
+cd ..
+
 exit $retVal
