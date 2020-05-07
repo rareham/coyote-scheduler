@@ -7,6 +7,7 @@
 
 using namespace coyote;
 
+constexpr auto THREAD_COUNT = 3;
 constexpr auto SEMAPHORE_ID = 1;
 
 Scheduler* scheduler;
@@ -61,7 +62,7 @@ void run_iteration()
 	scheduler->create_resource(SEMAPHORE_ID);
 
 	std::vector<std::unique_ptr<std::thread>> threads;
-	for (int i = 0; i < 10; i++)
+	for (int i = 0; i < THREAD_COUNT; i++)
 	{
 		int thread_id = i + 1;
 		scheduler->create_operation(thread_id);
@@ -71,13 +72,15 @@ void run_iteration()
 	scheduler->schedule_next();
 	assert(max_value_observed <= max_allowed, "the observed max value is greater than allowed");
 
-	scheduler->detach();
-	assert(scheduler->error_code(), ErrorCode::Success);
-
-	for (int i = 0; i < 10; i++)
+	for (int i = 0; i < THREAD_COUNT; i++)
 	{
+		int thread_id = i + 1;
+		scheduler->join_operation(thread_id);
 		threads[i]->join();
 	}
+
+	scheduler->detach();
+	assert(scheduler->error_code(), ErrorCode::Success);
 }
 
 int main()

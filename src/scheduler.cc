@@ -32,7 +32,7 @@ namespace coyote
 		{
 			std::unique_lock<std::mutex> lock(*mutex);
 #ifdef COYOTE_DEBUG_LOG
-			std::cout << "[coyote::attach] attaching the current operation" << std::endl;
+			std::cout << "[coyote::attach] attaching the main operation" << std::endl;
 #endif // COYOTE_DEBUG_LOG
 
 			if (is_attached)
