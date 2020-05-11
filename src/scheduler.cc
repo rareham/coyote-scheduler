@@ -662,7 +662,7 @@ namespace coyote
 		return strategy->next_boolean();
 	}
 
-	int Scheduler::next_integer(int max_value) noexcept
+	size_t Scheduler::next_integer(size_t max_value) noexcept
 	{
 #ifdef COYOTE_DEBUG_LOG
 		std::cout << "[coyote::next_integer] " << std::endl;

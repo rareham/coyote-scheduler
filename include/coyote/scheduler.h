@@ -109,7 +109,7 @@ namespace coyote
 		bool next_boolean() noexcept;
 
 		// Returns a controlled nondeterministic integer value chosen from the [0, max_value) range.
-		int next_integer(int max_value) noexcept;
+		size_t next_integer(size_t max_value) noexcept;
 
 		// Returns a seed that can be used to reproduce the current testing iteration.
 		size_t seed() noexcept;

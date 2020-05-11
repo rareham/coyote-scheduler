@@ -34,7 +34,7 @@ namespace coyote
 		bool next_boolean();
 
 		// Returns the next integer choice.
-		int next_integer(int max_value);
+		size_t next_integer(size_t max_value);
 
 		// Returns the seed used in the current iteration.
 		size_t seed();

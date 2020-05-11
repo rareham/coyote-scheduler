@@ -19,10 +19,10 @@ namespace coyote
 
 	bool RandomStrategy::next_boolean()
 	{
-		return generator.next() & 1;
+		return (generator.next() & 1) == 0;
 	}
 
-	int RandomStrategy::next_integer(int max_value)
+	size_t RandomStrategy::next_integer(size_t max_value)
 	{
 		return generator.next() % max_value;
 	}
