@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#include <array>
 #include "test.h"
 #include "coyote/strategies/random_strategy.h"
 
@@ -23,9 +24,9 @@ int main()
 	const int num_bool_choices = 100;
 	const int num_int_choices = 100;
 
-	std::array<int, num_ops> op_choices;
+	std::array<size_t, num_ops> op_choices;
 	std::array<bool, num_bool_choices> bool_choices;
-	std::array<int, num_int_choices> int_choices;
+	std::array<size_t, num_int_choices> int_choices;
 
 	Operations ops;
 	for (int i = 0; i < num_ops; i++)

@@ -260,7 +260,7 @@ namespace coyote
 			}
 
 			std::vector<size_t> join_operations;
-			for (int i = 0; i < size; i++)
+			for (size_t i = 0; i < size; i++)
 			{
 				size_t operation_id = *(operation_ids + i);
 				auto it = operation_map.find(operation_id);
@@ -477,7 +477,7 @@ namespace coyote
 			scheduled_op->wait_resource_signals(resource_ids, size, wait_all);
 			operations.disable(scheduled_op->id);
 
-			for (int i = 0; i < size; i++)
+			for (size_t i = 0; i < size; i++)
 			{
 				size_t resource_id = *(resource_ids + i);
 				auto it = resource_map.find(resource_id);

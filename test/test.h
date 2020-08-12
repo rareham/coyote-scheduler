@@ -29,7 +29,7 @@ void assert(ErrorCode actual, ErrorCode expected)
 size_t total_time(std::chrono::steady_clock::time_point start_time)
 {
 	auto end_time = std::chrono::steady_clock::now();
-	return std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+	return (size_t)std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
 }
 
 #endif // COYOTE_TEST_H
