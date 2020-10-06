@@ -1,4 +1,8 @@
-[![Build status](https://dev.azure.com/foundry99/Coyote/_apis/build/status/Native/CoyoteScheduler-Linux-CI)](https://dev.azure.com/foundry99/Coyote/_build/latest?definitionId=114)
+# Coyote Native Scheduler
+
+![Windows CI](https://github.com/microsoft/coyote-scheduler/workflows/Windows%20CI/badge.svg)
+![Linux CI](https://github.com/microsoft/coyote-scheduler/workflows/Linux%20CI/badge.svg)
+![macOS CI](https://github.com/microsoft/coyote-scheduler/workflows/macOS%20CI/badge.svg)
 
 A C++ library for **language-agnostic systematic concurrency testing** by the
 [Coyote](https://microsoft.github.io/coyote/) team in [Microsoft
@@ -14,14 +18,14 @@ To learn more about the research behind our technology, check out our published 
 [here](https://microsoft.github.io/coyote/learn/resources/publications).
 
 ## How to build
-On Linux, run the following bash script from the root directory:
+On Linux or macOS, run the following bash script from the root directory:
 ```bash
-./scripts/build-linux.sh
+./scripts/build.sh
 ```
 
 On Windows, run the following script for a VS 2019 developer command prompt:
 ```bat
-scripts\build-windows.bat
+scripts\build.bat
 ```
 
 After building the project, you can find a static and shared library in `bin`.
