@@ -9,7 +9,8 @@ namespace coyote
     enum class Strategy
     {
         None = 0,
-        Random
+        Random,
+        SleepInjection
     };
 }
 

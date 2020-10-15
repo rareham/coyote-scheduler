@@ -12,23 +12,28 @@ namespace coyote
 	{
 	}
 
-	void Settings::use_random_strategy(size_t seed)
+	void Settings::use_random_strategy(size_t seed) noexcept
 	{
 		strategy = Strategy::Random;
 		seed_state = seed;
 	}
 
-	void Settings::disable_scheduling()
+	void Settings::use_sleep_injection_strategy() noexcept
+	{
+		strategy = Strategy::SleepInjection;
+	}
+
+	void Settings::disable_scheduling() noexcept
 	{
 		strategy = Strategy::None;
 	}
 
-	Strategy Settings::exploration_strategy()
+	Strategy Settings::exploration_strategy() noexcept
 	{
 		return strategy;
 	}
 
-	size_t Settings::random_seed()
+	size_t Settings::random_seed() noexcept
 	{
 		return seed_state;
 	}

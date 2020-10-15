@@ -30,7 +30,8 @@ namespace coyote
 	{
 		try
 		{
-			if (configuration->exploration_strategy() == Strategy::None)
+			if (configuration->exploration_strategy() == Strategy::None ||
+				configuration->exploration_strategy() == Strategy::SleepInjection)
 			{
 				throw ErrorCode::SchedulerDisabled;
 			}
@@ -74,7 +75,8 @@ namespace coyote
 	{
 		try
 		{
-			if (configuration->exploration_strategy() == Strategy::None)
+			if (configuration->exploration_strategy() == Strategy::None ||
+				configuration->exploration_strategy() == Strategy::SleepInjection)
 			{
 				throw ErrorCode::SchedulerDisabled;
 			}
@@ -136,6 +138,11 @@ namespace coyote
 			{
 				throw ErrorCode::SchedulerDisabled;
 			}
+			else if (configuration->exploration_strategy() == Strategy::SleepInjection)
+			{
+				strategy->inject_sleep();
+				throw ErrorCode::SchedulerDisabled;
+			}
 			
 			std::unique_lock<std::mutex> lock(*mutex);
 #ifdef COYOTE_DEBUG_LOG
@@ -173,6 +180,11 @@ namespace coyote
 			{
 				throw ErrorCode::SchedulerDisabled;
 			}
+			else if (configuration->exploration_strategy() == Strategy::SleepInjection)
+			{
+				strategy->inject_sleep();
+				throw ErrorCode::SchedulerDisabled;
+			}
 			
 			std::unique_lock<std::mutex> lock(*mutex);
 #ifdef COYOTE_DEBUG_LOG
@@ -208,6 +220,11 @@ namespace coyote
 		{
 			if (configuration->exploration_strategy() == Strategy::None)
 			{
+				throw ErrorCode::SchedulerDisabled;
+			}
+			else if (configuration->exploration_strategy() == Strategy::SleepInjection)
+			{
+				strategy->inject_sleep();
 				throw ErrorCode::SchedulerDisabled;
 			}
 			
@@ -267,6 +284,11 @@ namespace coyote
 		{
 			if (configuration->exploration_strategy() == Strategy::None)
 			{
+				throw ErrorCode::SchedulerDisabled;
+			}
+			else if (configuration->exploration_strategy() == Strategy::SleepInjection)
+			{
+				strategy->inject_sleep();
 				throw ErrorCode::SchedulerDisabled;
 			}
 			
@@ -346,6 +368,11 @@ namespace coyote
 			{
 				throw ErrorCode::SchedulerDisabled;
 			}
+			else if (configuration->exploration_strategy() == Strategy::SleepInjection)
+			{
+				strategy->inject_sleep();
+				throw ErrorCode::SchedulerDisabled;
+			}
 			
 			std::unique_lock<std::mutex> lock(*mutex);
 #ifdef COYOTE_DEBUG_LOG
@@ -416,6 +443,11 @@ namespace coyote
 			{
 				throw ErrorCode::SchedulerDisabled;
 			}
+			else if (configuration->exploration_strategy() == Strategy::SleepInjection)
+			{
+				strategy->inject_sleep();
+				throw ErrorCode::SchedulerDisabled;
+			}
 			
 			std::unique_lock<std::mutex> lock(*mutex);
 #ifdef COYOTE_DEBUG_LOG
@@ -454,6 +486,11 @@ namespace coyote
 		{
 			if (configuration->exploration_strategy() == Strategy::None)
 			{
+				throw ErrorCode::SchedulerDisabled;
+			}
+			else if (configuration->exploration_strategy() == Strategy::SleepInjection)
+			{
+				strategy->inject_sleep();
 				throw ErrorCode::SchedulerDisabled;
 			}
 			
@@ -501,6 +538,11 @@ namespace coyote
 		{
 			if (configuration->exploration_strategy() == Strategy::None)
 			{
+				throw ErrorCode::SchedulerDisabled;
+			}
+			else if (configuration->exploration_strategy() == Strategy::SleepInjection)
+			{
+				strategy->inject_sleep();
 				throw ErrorCode::SchedulerDisabled;
 			}
 
@@ -563,6 +605,11 @@ namespace coyote
 			{
 				throw ErrorCode::SchedulerDisabled;
 			}
+			else if (configuration->exploration_strategy() == Strategy::SleepInjection)
+			{
+				strategy->inject_sleep();
+				throw ErrorCode::SchedulerDisabled;
+			}
 
 			std::unique_lock<std::mutex> lock(*mutex);
 #ifdef COYOTE_DEBUG_LOG
@@ -610,6 +657,11 @@ namespace coyote
 		{
 			if (configuration->exploration_strategy() == Strategy::None)
 			{
+				throw ErrorCode::SchedulerDisabled;
+			}
+			else if (configuration->exploration_strategy() == Strategy::SleepInjection)
+			{
+				strategy->inject_sleep();
 				throw ErrorCode::SchedulerDisabled;
 			}
 
@@ -662,7 +714,12 @@ namespace coyote
 			if (configuration->exploration_strategy() == Strategy::None)
 			{
 				throw ErrorCode::SchedulerDisabled;
-		}
+			}
+			else if (configuration->exploration_strategy() == Strategy::SleepInjection)
+			{
+				strategy->inject_sleep();
+				throw ErrorCode::SchedulerDisabled;
+			}
 
 			std::unique_lock<std::mutex> lock(*mutex);
 #ifdef COYOTE_DEBUG_LOG
@@ -700,6 +757,11 @@ namespace coyote
 		{
 			if (configuration->exploration_strategy() == Strategy::None)
 			{
+				throw ErrorCode::SchedulerDisabled;
+			}
+			else if (configuration->exploration_strategy() == Strategy::SleepInjection)
+			{
+				strategy->inject_sleep();
 				throw ErrorCode::SchedulerDisabled;
 			}
 

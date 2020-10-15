@@ -37,6 +37,9 @@ namespace coyote
 		// Returns the next integer choice.
 		size_t next_integer(size_t max_value);
 
+		// Injects a random sleep.
+		void inject_sleep();
+
 		// Returns the seed used in the current iteration.
 		size_t random_seed();
 

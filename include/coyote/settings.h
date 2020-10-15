@@ -4,6 +4,7 @@
 #ifndef COYOTE_CONFIGURATION_H
 #define COYOTE_CONFIGURATION_H
 
+#include <functional>
 #include "strategies/strategy.h"
 
 namespace coyote
@@ -26,17 +27,20 @@ namespace coyote
 		Settings& operator=(Settings&& strategy) = delete;
 		Settings& operator=(Settings const&) = delete;
 
-		// Installs the random exploration strategy with the specified random seed.
-		void use_random_strategy(size_t seed);
+		// Installs the random exploration strategy that uses the specified random seed.
+		void use_random_strategy(size_t seed) noexcept;
+
+		// Installs a randomized sleep injection exploration strategy.
+		void use_sleep_injection_strategy() noexcept;
 
 		// Disables controlled scheduling.
-		void disable_scheduling();
+		void disable_scheduling() noexcept;
 
 		// Returns the type of the installed exploration strategy.
-		Strategy exploration_strategy();
+		Strategy exploration_strategy() noexcept;
 
 		// Returns the seed used by randomized strategies.
-		size_t random_seed();
+		size_t random_seed() noexcept;
 	};
 }
 

@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#include <chrono>
 #include <thread>
 #include "test.h"
 
@@ -71,13 +72,13 @@ void work(int operation_id, CalculatorOp op)
 		}
 
 		// Limit the value between the range [-5000, 5000].
-		if (value > 10000)
+		if (value > 5000)
 		{
-			value = 10000;
+			value = 5000;
 		}
-		else if (value < -10000)
+		else if (value < -5000)
 		{
-			value = -10000;
+			value = -5000;
 		}
 
 		auto it = value_map.find(value);
@@ -172,6 +173,10 @@ int main()
 
 		settings = std::make_unique<Settings>();
 		test("random scheduler", std::move(settings), iterations, ErrorCode::Success);
+
+		settings = std::make_unique<Settings>();
+		settings->use_sleep_injection_strategy();
+		test("sleep injection", std::move(settings), iterations, ErrorCode::SchedulerDisabled);
 	}
 	catch (std::string error)
 	{
