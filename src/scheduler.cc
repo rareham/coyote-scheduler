@@ -381,7 +381,7 @@ namespace coyote
 			}
 
 			op->status = OperationStatus::Completed;
-			operations.disable(op->id);
+			operations.remove(op->id);
 
 			// Notify any operations that are waiting to join this operation.
 			for (const auto& blocked_id : op->blocked_operation_ids)
@@ -732,7 +732,7 @@ namespace coyote
 		return strategy->next_boolean();
 	}
 
-	size_t Scheduler::next_integer(size_t max_value) noexcept
+	int Scheduler::next_integer(int max_value) noexcept
 	{
 #ifdef COYOTE_DEBUG_LOG
 		std::cout << "[coyote::next_integer] " << std::endl;
@@ -740,7 +740,7 @@ namespace coyote
 		return strategy->next_integer(max_value);
 	}
 
-	size_t Scheduler::random_seed() noexcept
+	uint64_t Scheduler::random_seed() noexcept
 	{
 		return strategy->random_seed();
 	}
