@@ -23,6 +23,7 @@ namespace coyote
 		scheduled_op_id(0),
 		pending_start_operation_count(0),
 		is_attached(false),
+		is_main_op_enabled(true),
 		iteration_count(0),
 		last_error_code(ErrorCode::Success)
 	{
@@ -878,6 +879,18 @@ namespace coyote
 				" pending operations" << std::endl;
 #endif // COYOTE_DEBUG_LOG
 			pending_operations_cv.wait(lock);
+		}
+
+		if (operations.size() > 1 && is_main_op_enabled)
+		{
+			operations.disable(main_op_id);
+			is_main_op_enabled = false;
+		}
+
+		if (operations.size() == 0 && operations.size(false) > 0 && !is_main_op_enabled)
+		{
+			operations.enable(main_op_id);
+			is_main_op_enabled = true;
 		}
 
 		// Check if the schedule has finished or if there is a deadlock.

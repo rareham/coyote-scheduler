@@ -54,6 +54,8 @@ namespace coyote
 		// True if an execution is attached to the scheduler, else false.
 		bool is_attached;
 
+		bool is_main_op_enabled;
+
 		// The testing iteration count. It increments on each attach.
 		size_t iteration_count;
 
