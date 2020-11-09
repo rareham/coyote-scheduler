@@ -5,6 +5,8 @@
 #include <vector>
 #include "scheduler.h"
 #include "operations/operation_status.h"
+#include "strategies/random_strategy.h"
+#include "strategies/pct_strategy.h"
 
 namespace coyote
 {
@@ -15,7 +17,7 @@ namespace coyote
 
 	Scheduler::Scheduler(std::unique_ptr<Settings> settings) noexcept :
 		configuration(std::move(settings)),
-		strategy(std::make_unique<RandomStrategy>(configuration.get())),
+		strategy(create_strategy()),
 		mutex(std::make_unique<std::mutex>()),
 		pending_operations_cv(),
 		scheduled_op_id(0),
@@ -26,11 +28,21 @@ namespace coyote
 	{
 	}
 
+	std::unique_ptr<Strategy> Scheduler::create_strategy() noexcept
+	{
+		if (configuration->exploration_strategy() == StrategyType::PCT)
+		{
+			return std::make_unique<PCTStrategy>(configuration.get());
+		}
+
+		return std::make_unique<RandomStrategy>(configuration.get());
+	}
+
 	ErrorCode Scheduler::attach() noexcept
 	{
 		try
 		{
-			if (configuration->exploration_strategy() == Strategy::None)
+			if (configuration->exploration_strategy() == StrategyType::None)
 			{
 				throw ErrorCode::SchedulerDisabled;
 			}
@@ -52,7 +64,7 @@ namespace coyote
 			if (iteration_count > 1)
 			{
 				// Prepare the strategy for the next iteration.
-				strategy->prepare_next_iteration();
+				strategy->prepare_next_iteration(iteration_count);
 			}
 
 			create_operation_inner(main_op_id);
@@ -74,7 +86,7 @@ namespace coyote
 	{
 		try
 		{
-			if (configuration->exploration_strategy() == Strategy::None)
+			if (configuration->exploration_strategy() == StrategyType::None)
 			{
 				throw ErrorCode::SchedulerDisabled;
 			}
@@ -132,7 +144,7 @@ namespace coyote
 	{
 		try
 		{
-			if (configuration->exploration_strategy() == Strategy::None)
+			if (configuration->exploration_strategy() == StrategyType::None)
 			{
 				throw ErrorCode::SchedulerDisabled;
 			}
@@ -169,7 +181,7 @@ namespace coyote
 	{
 		try
 		{
-			if (configuration->exploration_strategy() == Strategy::None)
+			if (configuration->exploration_strategy() == StrategyType::None)
 			{
 				throw ErrorCode::SchedulerDisabled;
 			}
@@ -206,7 +218,7 @@ namespace coyote
 	{
 		try
 		{
-			if (configuration->exploration_strategy() == Strategy::None)
+			if (configuration->exploration_strategy() == StrategyType::None)
 			{
 				throw ErrorCode::SchedulerDisabled;
 			}
@@ -265,7 +277,7 @@ namespace coyote
 	{
 		try
 		{
-			if (configuration->exploration_strategy() == Strategy::None)
+			if (configuration->exploration_strategy() == StrategyType::None)
 			{
 				throw ErrorCode::SchedulerDisabled;
 			}
@@ -342,7 +354,7 @@ namespace coyote
 	{
 		try
 		{
-			if (configuration->exploration_strategy() == Strategy::None)
+			if (configuration->exploration_strategy() == StrategyType::None)
 			{
 				throw ErrorCode::SchedulerDisabled;
 			}
@@ -412,7 +424,7 @@ namespace coyote
 	{
 		try
 		{
-			if (configuration->exploration_strategy() == Strategy::None)
+			if (configuration->exploration_strategy() == StrategyType::None)
 			{
 				throw ErrorCode::SchedulerDisabled;
 			}
@@ -452,7 +464,7 @@ namespace coyote
 	{
 		try
 		{
-			if (configuration->exploration_strategy() == Strategy::None)
+			if (configuration->exploration_strategy() == StrategyType::None)
 			{
 				throw ErrorCode::SchedulerDisabled;
 			}
@@ -499,7 +511,7 @@ namespace coyote
 	{
 		try
 		{
-			if (configuration->exploration_strategy() == Strategy::None)
+			if (configuration->exploration_strategy() == StrategyType::None)
 			{
 				throw ErrorCode::SchedulerDisabled;
 			}
@@ -559,7 +571,7 @@ namespace coyote
 	{
 		try
 		{
-			if (configuration->exploration_strategy() == Strategy::None)
+			if (configuration->exploration_strategy() == StrategyType::None)
 			{
 				throw ErrorCode::SchedulerDisabled;
 			}
@@ -608,7 +620,7 @@ namespace coyote
 	{
 		try
 		{
-			if (configuration->exploration_strategy() == Strategy::None)
+			if (configuration->exploration_strategy() == StrategyType::None)
 			{
 				throw ErrorCode::SchedulerDisabled;
 			}
@@ -659,7 +671,7 @@ namespace coyote
 	{
 		try
 		{
-			if (configuration->exploration_strategy() == Strategy::None)
+			if (configuration->exploration_strategy() == StrategyType::None)
 			{
 				throw ErrorCode::SchedulerDisabled;
 		}
@@ -698,7 +710,7 @@ namespace coyote
 	{
 		try
 		{
-			if (configuration->exploration_strategy() == Strategy::None)
+			if (configuration->exploration_strategy() == StrategyType::None)
 			{
 				throw ErrorCode::SchedulerDisabled;
 			}
@@ -886,7 +898,7 @@ namespace coyote
 		}
 
 		// Ask the strategy for the next operation to schedule.
-		size_t next_id = strategy->next_operation(operations);
+		size_t next_id = strategy->next_operation(operations, scheduled_op_id);
 		Operation* next_op = operation_map.at(next_id).get();
 
 		const size_t previous_id = scheduled_op_id;

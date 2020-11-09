@@ -13,7 +13,7 @@
 #include "settings.h"
 #include "operations/operation.h"
 #include "operations/operations.h"
-#include "strategies/random_strategy.h"
+#include "strategies/strategy.h"
 
 namespace coyote
 {
@@ -24,7 +24,7 @@ namespace coyote
 		std::unique_ptr<Settings> configuration;
 
 		// Strategy for exploring the execution of the client program.
-		std::unique_ptr<RandomStrategy> strategy;
+		std::unique_ptr<Strategy> strategy;
 
 		// Map from unique operation ids to operations.
 		std::map<size_t, std::unique_ptr<Operation>> operation_map;
@@ -130,6 +130,8 @@ namespace coyote
 
 		Scheduler& operator=(Scheduler&& op) = delete;
 		Scheduler& operator=(Scheduler const&) = delete;
+
+		std::unique_ptr<Strategy> create_strategy() noexcept;
 
 		void create_operation_inner(size_t operation_id);
 		void start_operation_inner(size_t operation_id, std::unique_lock<std::mutex>& lock);
