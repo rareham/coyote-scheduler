@@ -25,6 +25,8 @@ namespace coyote
 
 		// Prepares the next iteration.
 		virtual void prepare_next_iteration(size_t iteration) = 0;
+
+		virtual ~Strategy() = default;
 	};
 }
 
