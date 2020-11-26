@@ -26,9 +26,7 @@ set(src_files
     "scheduler.cc"
     "settings.cc"
     "operations/operation.cc"
-    "operations/operations.cc"
-    "strategies/random.cc"
-    "strategies/random_strategy.cc")
+    "operations/operations.cc")
 
 add_library(coyote SHARED ${src_files} ${coyote_proto_srcs} ${coyote_grpc_srcs})
 target_link_libraries(coyote ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF})

@@ -5,7 +5,6 @@
 #include <vector>
 #include "scheduler.h"
 #include "operations/operation_status.h"
-#include "strategies/random_strategy.h"
 
 namespace coyote
 {
@@ -19,7 +18,6 @@ namespace coyote
 		stub(Scheduler::NewStub(grpc::CreateChannel(
 			endpoint, grpc::InsecureChannelCredentials()))),
 		configuration(std::move(settings)),
-		strategy(create_strategy()),
 		mutex(std::make_unique<std::mutex>()),
 		pending_operations_cv(),
 		scheduled_op_id(0),
@@ -29,22 +27,12 @@ namespace coyote
 	{
 	}
 
-	std::unique_ptr<Strategy> SchedulerClient::create_strategy() noexcept
-	{
-		if (configuration->exploration_strategy() == StrategyType::PCT)
-		{
-			// return std::make_unique<PCTStrategy>(configuration.get());
-		}
-
-		return std::make_unique<RandomStrategy>(configuration.get());
-	}
-
 	uint32_t SchedulerClient::attach() noexcept
 	{
-		ScheduleRequest request;
+		AttachRequest request;
 		request.set_scheduler_id(id);
 
-		ScheduleReply reply;
+		AttachReply reply;
 		ClientContext context;
 
 		Status status = stub->Attach(&context, request, &reply);
@@ -98,8 +86,25 @@ namespace coyote
 //		}
 	}
 
-//	uint32_t SchedulerClient::detach() noexcept
-//	{
+	uint32_t SchedulerClient::detach() noexcept
+	{
+		DetachRequest request;
+		request.set_scheduler_id(id);
+
+		DetachReply reply;
+		ClientContext context;
+
+		Status status = stub->Detach(&context, request, &reply);
+		if (status.ok())
+		{
+			return reply.error_code();
+		}
+		else
+		{
+			std::cout << status.error_code() << ": " << status.error_message() << std::endl;
+			return 1;
+		}
+
 //		try
 //		{
 //			if (configuration->exploration_strategy() == StrategyType::None)
@@ -154,10 +159,27 @@ namespace coyote
 //		}
 //
 //		return last_error_code;
-//	}
-//
-//	uint32_t SchedulerClient::create_operation(size_t operation_id) noexcept
-//	{
+	}
+
+	uint32_t SchedulerClient::create_operation(size_t operation_id) noexcept
+	{
+		CreateOperationRequest request;
+		request.set_scheduler_id(id);
+
+		CreateOperationReply reply;
+		ClientContext context;
+
+		Status status = stub->CreateOperation(&context, request, &reply);
+		if (status.ok())
+		{
+			return reply.error_code();
+		}
+		else
+		{
+			std::cout << status.error_code() << ": " << status.error_message() << std::endl;
+			return 1;
+		}
+
 //		try
 //		{
 //			if (configuration->exploration_strategy() == StrategyType::None)
@@ -191,10 +213,27 @@ namespace coyote
 //		}
 //
 //		return last_error_code;
-//	}
-//
-//	uint32_t SchedulerClient::start_operation(size_t operation_id) noexcept
-//	{
+	}
+
+	uint32_t SchedulerClient::start_operation(size_t operation_id) noexcept
+	{
+		StartOperationRequest request;
+		request.set_scheduler_id(id);
+
+		StartOperationReply reply;
+		ClientContext context;
+
+		Status status = stub->StartOperation(&context, request, &reply);
+		if (status.ok())
+		{
+			return reply.error_code();
+		}
+		else
+		{
+			std::cout << status.error_code() << ": " << status.error_message() << std::endl;
+			return 1;
+		}
+
 //		try
 //		{
 //			if (configuration->exploration_strategy() == StrategyType::None)
@@ -228,10 +267,27 @@ namespace coyote
 //		}
 //
 //		return last_error_code;
-//	}
-//
-//	uint32_t SchedulerClient::join_operation(size_t operation_id) noexcept
-//	{
+	}
+
+	uint32_t SchedulerClient::join_operation(size_t operation_id) noexcept
+	{
+		JoinOperationRequest request;
+		request.set_scheduler_id(id);
+
+		JoinOperationReply reply;
+		ClientContext context;
+
+		Status status = stub->JoinOperation(&context, request, &reply);
+		if (status.ok())
+		{
+			return reply.error_code();
+		}
+		else
+		{
+			std::cout << status.error_code() << ": " << status.error_message() << std::endl;
+			return 1;
+		}
+
 //		try
 //		{
 //			if (configuration->exploration_strategy() == StrategyType::None)
@@ -287,8 +343,8 @@ namespace coyote
 //		}
 //
 //		return last_error_code;
-//	}
-//
+	}
+
 //	uint32_t SchedulerClient::join_operations(const size_t* operation_ids, size_t size, bool wait_all) noexcept
 //	{
 //		try
@@ -365,9 +421,26 @@ namespace coyote
 //
 //		return last_error_code;
 //	}
-//
-//	uint32_t SchedulerClient::complete_operation(size_t operation_id) noexcept
-//	{
+
+	uint32_t SchedulerClient::complete_operation(size_t operation_id) noexcept
+	{
+		CompleteOperationRequest request;
+		request.set_scheduler_id(id);
+
+		CompleteOperationReply reply;
+		ClientContext context;
+
+		Status status = stub->CompleteOperation(&context, request, &reply);
+		if (status.ok())
+		{
+			return reply.error_code();
+		}
+		else
+		{
+			std::cout << status.error_code() << ": " << status.error_message() << std::endl;
+			return 1;
+		}
+
 //		try
 //		{
 //			if (configuration->exploration_strategy() == StrategyType::None)
@@ -434,8 +507,8 @@ namespace coyote
 //		}
 //
 //		return last_error_code;
-//	}
-//
+	}
+
 //	uint32_t SchedulerClient::create_resource(size_t resource_id) noexcept
 //	{
 //		try
@@ -721,37 +794,54 @@ namespace coyote
 //
 //		return last_error_code;
 //	}
-//
-//	uint32_t SchedulerClient::schedule_next() noexcept
-//	{
-//		try
-//		{
-//			if (configuration->exploration_strategy() == StrategyType::None)
-//			{
-//				throw uint32_t::SchedulerDisabled;
-//			}
-//
-//			std::unique_lock<std::mutex> lock(*mutex);
-//
-//			if (!is_attached)
-//			{
-//				throw uint32_t::ClientNotAttached;
-//			}
-//
-//			schedule_next_inner(lock);
-//		}
-//		catch (uint32_t error_code)
-//		{
-//			last_error_code = error_code;
-//		}
-//		catch (...)
-//		{
-//			last_error_code = uint32_t::Failure;
-//		}
-//
-//		return last_error_code;
-//	}
-//
+
+	uint32_t SchedulerClient::schedule_next() noexcept
+	{
+		ScheduleNextRequest request;
+		request.set_scheduler_id(id);
+
+		ScheduleNextReply reply;
+		ClientContext context;
+
+		Status status = stub->ScheduleNext(&context, request, &reply);
+		if (status.ok())
+		{
+			return reply.error_code();
+		}
+		else
+		{
+			std::cout << status.error_code() << ": " << status.error_message() << std::endl;
+			return 1;
+		}
+
+		//try
+		//{
+		//	if (configuration->exploration_strategy() == StrategyType::None)
+		//	{
+		//		throw uint32_t::SchedulerDisabled;
+		//	}
+
+		//	std::unique_lock<std::mutex> lock(*mutex);
+
+		//	if (!is_attached)
+		//	{
+		//		throw uint32_t::ClientNotAttached;
+		//	}
+
+		//	schedule_next_inner(lock);
+		//}
+		//catch (uint32_t error_code)
+		//{
+		//	last_error_code = error_code;
+		//}
+		//catch (...)
+		//{
+		//	last_error_code = uint32_t::Failure;
+		//}
+
+		//return last_error_code;
+	}
+
 //	bool SchedulerClient::next_boolean() noexcept
 //	{
 //#ifdef COYOTE_DEBUG_LOG
