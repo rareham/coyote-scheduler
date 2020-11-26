@@ -13,7 +13,7 @@ constexpr auto WORK_THREAD_1_ID = 1;
 constexpr auto WORK_THREAD_2_ID = 2;
 constexpr auto WORK_THREAD_3_ID = 3;
 
-Scheduler* scheduler;
+SchedulerClient* scheduler;
 
 bool work_1_completed;
 bool work_2_completed;
@@ -95,7 +95,7 @@ int main()
 
 	try
 	{
-		scheduler = new Scheduler();
+		scheduler = new SchedulerClient();
 
 		for (int i = 0; i < 100; i++)
 		{

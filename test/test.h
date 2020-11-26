@@ -10,21 +10,21 @@
 
 using namespace coyote;
 
-void assert(bool predicate, std::string error)
-{
-	if (!predicate)
-	{
-		throw error;
-	}
-}
-
-void assert(ErrorCode actual, ErrorCode expected)
-{
-	if (actual != expected)
-	{
-		throw "expected the '" + error_message(expected) + "' error code, but received '" + error_message(actual) + "'.";
-	}
-}
+//void assert(bool predicate, std::string error)
+//{
+//	if (!predicate)
+//	{
+//		throw error;
+//	}
+//}
+//
+//void assert(uint32_t actual, uint32_t expected)
+//{
+//	if (actual != expected)
+//	{
+//		throw "expected the '" + expected + "' error code, but received '" + actual + "'.";
+//	}
+//}
 
 size_t total_time(std::chrono::steady_clock::time_point start_time)
 {

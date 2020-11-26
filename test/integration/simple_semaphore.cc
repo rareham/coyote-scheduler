@@ -10,7 +10,7 @@ using namespace coyote;
 constexpr auto THREAD_COUNT = 3;
 constexpr auto SEMAPHORE_ID = 1;
 
-Scheduler* scheduler;
+SchedulerClient* scheduler;
 
 int shared_var;
 int max_value_observed;
@@ -90,7 +90,7 @@ int main()
 
 	try
 	{
-		scheduler = new Scheduler();
+		scheduler = new SchedulerClient();
 
 		for (int i = 0; i < 100; i++)
 		{

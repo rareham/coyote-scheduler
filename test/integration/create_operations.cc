@@ -9,7 +9,7 @@ using namespace coyote;
 constexpr auto WORK_THREAD_1_ID = 1;
 constexpr auto WORK_THREAD_2_ID = 2;
 
-Scheduler* scheduler;
+SchedulerClient* scheduler;
 
 void work_1()
 {
@@ -49,7 +49,7 @@ int main()
 
 	try
 	{
-		scheduler = new Scheduler();
+		scheduler = new SchedulerClient();
 
 		for (int i = 0; i < 100; i++)
 		{

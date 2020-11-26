@@ -1,25 +1,79 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#ifndef COYOTE_SCHEDULER_H
-#define COYOTE_SCHEDULER_H
+#ifndef COYOTE_SCHEDULER_CLIENT_H
+#define COYOTE_SCHEDULER_CLIENT_H
+
+//#include <iostream>
+//#include <string>
 
 #include <condition_variable>
 #include <cstdint>
 #include <map>
 #include <memory>
 #include <unordered_set>
-#include "error_code.h"
+#include <grpcpp/grpcpp.h>
 #include "settings.h"
 #include "operations/operation.h"
 #include "operations/operations.h"
 #include "strategies/strategy.h"
+#include "proto/coyote.grpc.pb.h"
+
+using grpc::Channel;
+using grpc::ClientContext;
+using grpc::Status;
+using coyote::ScheduleRequest;
+using coyote::ScheduleReply;
+using coyote::Scheduler;
+//
+//class SchedulerClient {
+//private:
+//	std::unique_ptr<Scheduler::Stub> stub_;
+//
+//public:
+//	SchedulerClient(std::shared_ptr<Channel> channel)
+//		: stub_(Scheduler::NewStub(channel)) {}
+//
+//	// Assembles the client's payload, sends it and presents the response back
+//	// from the server.
+//	std::string SayHello(const std::string& user) {
+//		// Data we are sending to the server.
+//		HelloRequest request;
+//		request.set_name(user);
+//
+//		// Container for the data we expect from the server.
+//		HelloReply reply;
+//
+//		// Context for the client. It could be used to convey extra information to
+//		// the server and/or tweak certain RPC behaviors.
+//		ClientContext context;
+//
+//		// The actual RPC.
+//		Status status = stub_->SayHello(&context, request, &reply);
+//
+//		// Act upon its status.
+//		if (status.ok()) {
+//			return reply.message();
+//		}
+//		else {
+//			std::cout << status.error_code() << ": " << status.error_message()
+//				<< std::endl;
+//			return "RPC failed";
+//		}
+//	}
+//};
 
 namespace coyote
 {
-	class Scheduler
+	class SchedulerClient
 	{
 	private:
+		// The id of this scheduler.
+		std::string id;
+
+		// Provides access to Coyote via gRPC.
+		std::unique_ptr<Scheduler::Stub> stub;
+
 		// Configures the program exploration.
 		std::unique_ptr<Settings> configuration;
 
@@ -57,86 +111,80 @@ namespace coyote
 		// The testing iteration count. It increments on each attach.
 		size_t iteration_count;
 
-		// The last assigned error code, else success.
-		ErrorCode last_error_code;
-
 	public:
-		Scheduler() noexcept;
-		Scheduler(std::unique_ptr<Settings> settings) noexcept;
+		SchedulerClient(std::string scheduler_id, std::string endpoint) noexcept;
+		SchedulerClient(std::string scheduler_id, std::string endpoint, std::unique_ptr<Settings> settings) noexcept;
 
 		// Attaches to the scheduler. This should be called at the beginning of a testing iteration.
 		// It creates a main operation with id '0'.
-		ErrorCode attach() noexcept;
+		uint32_t attach() noexcept;
 
 		// Detaches from the scheduler. This should be called at the end of a testing iteration.
 		// It completes the main operation with id '0' and releases all controlled operations. 
-		ErrorCode detach() noexcept;
+		//uint32_t detach() noexcept;
 
-		// Creates a new operation with the specified id.
-		ErrorCode create_operation(size_t operation_id) noexcept;
-		
-		// Starts executing the operation with the specified id.
-		ErrorCode start_operation(size_t operation_id) noexcept;
+		//// Creates a new operation with the specified id.
+		//uint32_t create_operation(size_t operation_id) noexcept;
+		//
+		//// Starts executing the operation with the specified id.
+		//uint32_t start_operation(size_t operation_id) noexcept;
 
-		// Waits until the operation with the specified id has completed.
-		ErrorCode join_operation(size_t operation_id) noexcept;
+		//// Waits until the operation with the specified id has completed.
+		//uint32_t join_operation(size_t operation_id) noexcept;
 
-		// Waits until the operations with the specified ids have completed.
-		ErrorCode join_operations(const size_t* operation_ids, size_t size, bool wait_all) noexcept;
+		//// Waits until the operations with the specified ids have completed.
+		//uint32_t join_operations(const size_t* operation_ids, size_t size, bool wait_all) noexcept;
 
-		// Completes executing the operation with the specified id and schedules the next operation.
-		ErrorCode complete_operation(size_t operation_id) noexcept;
+		//// Completes executing the operation with the specified id and schedules the next operation.
+		//uint32_t complete_operation(size_t operation_id) noexcept;
 
-		// Creates a new resource with the specified id.
-		ErrorCode create_resource(size_t resource_id) noexcept;
+		//// Creates a new resource with the specified id.
+		//uint32_t create_resource(size_t resource_id) noexcept;
 
-		// Waits the resource with the specified id to become available and schedules the next operation.
-		ErrorCode wait_resource(size_t resource_id) noexcept;
-		
-		// Waits the resources with the specified ids to become available and schedules the next operation.
-		ErrorCode wait_resources(const size_t* resource_ids, size_t size, bool wait_all) noexcept;
-        
-		// Signals all waiting operations that the resource with the specified id is available.
-		ErrorCode signal_resource(size_t resource_id) noexcept;
+		//// Waits the resource with the specified id to become available and schedules the next operation.
+		//uint32_t wait_resource(size_t resource_id) noexcept;
+		//
+		//// Waits the resources with the specified ids to become available and schedules the next operation.
+		//uint32_t wait_resources(const size_t* resource_ids, size_t size, bool wait_all) noexcept;
+  //      
+		//// Signals all waiting operations that the resource with the specified id is available.
+		//uint32_t signal_resource(size_t resource_id) noexcept;
 
-		// Signals the waiting operation that the resource with the specified id is available.
-		ErrorCode signal_resource(size_t resource_id, size_t operation_id) noexcept;
+		//// Signals the waiting operation that the resource with the specified id is available.
+		//uint32_t signal_resource(size_t resource_id, size_t operation_id) noexcept;
 
-		// Deletes the resource with the specified id.
-		ErrorCode delete_resource(size_t resource_id) noexcept;
+		//// Deletes the resource with the specified id.
+		//uint32_t delete_resource(size_t resource_id) noexcept;
 
-		// Schedules the next operation, which can include the currently executing operation.
-		// Only operations that are not blocked nor completed can be scheduled.
-		ErrorCode schedule_next() noexcept;
+		//// Schedules the next operation, which can include the currently executing operation.
+		//// Only operations that are not blocked nor completed can be scheduled.
+		//uint32_t schedule_next() noexcept;
 
-		// Returns a controlled nondeterministic boolean value.
-		bool next_boolean() noexcept;
+		//// Returns a controlled nondeterministic boolean value.
+		//bool next_boolean() noexcept;
 
-		// Returns a controlled nondeterministic integer value chosen from the [0, max_value) range.
-		int next_integer(int max_value) noexcept;
+		//// Returns a controlled nondeterministic integer value chosen from the [0, max_value) range.
+		//int next_integer(int max_value) noexcept;
 
-		// Returns the id of the currently scheduled operation.
-		size_t scheduled_operation_id() noexcept;
+		//// Returns the id of the currently scheduled operation.
+		//size_t scheduled_operation_id() noexcept;
 
-		// Returns a seed that can be used to reproduce the current testing iteration.
-		uint64_t random_seed() noexcept;
-
-		// Returns the last error code, if there is one assigned.
-		ErrorCode error_code() noexcept;
+		//// Returns a seed that can be used to reproduce the current testing iteration.
+		//uint64_t random_seed() noexcept;
 
 	private:
-		Scheduler(Scheduler&& op) = delete;
-		Scheduler(Scheduler const&) = delete;
+		SchedulerClient(SchedulerClient&& op) = delete;
+		SchedulerClient(SchedulerClient const&) = delete;
 
-		Scheduler& operator=(Scheduler&& op) = delete;
-		Scheduler& operator=(Scheduler const&) = delete;
+		SchedulerClient& operator=(SchedulerClient&& op) = delete;
+		SchedulerClient& operator=(SchedulerClient const&) = delete;
 
 		std::unique_ptr<Strategy> create_strategy() noexcept;
 
-		void create_operation_inner(size_t operation_id);
-		void start_operation_inner(size_t operation_id, std::unique_lock<std::mutex>& lock);
-		void schedule_next_inner(std::unique_lock<std::mutex>& lock);
+		//void create_operation_inner(size_t operation_id);
+		//void start_operation_inner(size_t operation_id, std::unique_lock<std::mutex>& lock);
+		//void schedule_next_inner(std::unique_lock<std::mutex>& lock);
 	};
 }
 
-#endif // COYOTE_SCHEDULER_H
+#endif // COYOTE_SCHEDULER_CLIENT_H

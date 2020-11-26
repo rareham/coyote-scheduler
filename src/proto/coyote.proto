@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option csharp_namespace = "Microsoft.Coyote.TestService";
+
+package coyote;
+
+// The Coyote test service definition.
+service Scheduler {
+  // Attaches to the scheduler. This should be called at the beginning of a testing iteration.
+  // It creates a main operation with id '0'.
+  rpc Attach (ScheduleRequest) returns (ScheduleReply);
+}
+
+// The schedule request message containing the scheduler id.
+message ScheduleRequest {
+  string scheduler_id = 1;
+}
+
+// The schedule response message containing the error code.
+message ScheduleReply {
+  uint32 error_code = 1;
+}

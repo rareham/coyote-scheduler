@@ -12,7 +12,7 @@ constexpr auto WORK_THREAD_Sub_ID = 2;
 constexpr auto WORK_THREAD_Mul_ID = 3;
 constexpr auto WORK_THREAD_Div_ID = 4;
 
-Scheduler* scheduler;
+SchedulerClient* scheduler;
 
 std::mutex mutex;
 std::map<int, int> value_map;
@@ -137,7 +137,7 @@ void run_iteration(ErrorCode expected_error_code)
 void test(std::string scheduler_name, std::unique_ptr<Settings> settings, int iterations, ErrorCode expected_error_code)
 {
 	auto start_time = std::chrono::steady_clock::now();
-	scheduler = new Scheduler(std::move(settings));
+	scheduler = new SchedulerClient(std::move(settings));
 
 	for (int i = 0; i < iterations; i++)
 	{

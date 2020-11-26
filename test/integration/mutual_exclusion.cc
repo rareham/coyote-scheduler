@@ -10,7 +10,7 @@ constexpr auto WORK_THREAD_1_ID = 1;
 constexpr auto WORK_THREAD_2_ID = 2;
 constexpr auto LOCK_ID = 1;
 
-Scheduler* scheduler;
+SchedulerClient* scheduler;
 
 int shared_var;
 int lock_status;
@@ -94,7 +94,7 @@ int main()
 
 	try
 	{
-		scheduler = new Scheduler();
+		scheduler = new SchedulerClient();
 
 		for (int i = 0; i < 100; i++)
 		{
