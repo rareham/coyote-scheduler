@@ -16,6 +16,19 @@ The library exposes an FFI for interop with other languages.
 To learn more about the research behind our technology, check out our published papers
 [here](https://microsoft.github.io/coyote/learn/resources/publications).
 
+## Prerequisites
+First, install [CMake](https://cmake.org/install) (at least v3.11).
+
+Next, install the [gRPC](https://grpc.io/) for C++. To do this on Linux, run:
+```bash
+sudo apt-get install build-essential autoconf libtool pkg-config
+```
+
+On Windows, you can install gRPC using [vcpkg](https://github.com/Microsoft/vcpkg#quick-start-windows) as follows:
+```bat
+vcpkg install grpc:x64-windows
+```
+
 ## How to build
 On Linux, run the following bash script from the root directory:
 ```bash
