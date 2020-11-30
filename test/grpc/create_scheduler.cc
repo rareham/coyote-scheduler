@@ -13,11 +13,13 @@ int main()
 
 	try
 	{
-		SchedulerClient* scheduler = new SchedulerClient("5f40e98d-725a-4042-9b3e-0627b1501433", "localhost:5000");
-		scheduler->attach();
-		//assert(scheduler->error_code(), ErrorCode::Success);
-		scheduler->detach();
-		//assert(scheduler->error_code(), ErrorCode::Success);
+		SchedulerClient* scheduler = new SchedulerClient("localhost:5000");
+		auto error_code = scheduler->init();
+		check(error_code, 0);
+		error_code = scheduler->attach();
+		check(error_code, 0);
+		error_code = scheduler->detach();
+		check(error_code, 0);
 		delete scheduler;
 	}
 	catch (std::string error)

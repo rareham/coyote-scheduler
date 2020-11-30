@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 # Get proto file
-get_filename_component(coyote_proto "proto/coyote.proto" ABSOLUTE)
+get_filename_component(coyote_proto "coyote.proto" ABSOLUTE)
 get_filename_component(coyote_proto_path "${coyote_proto}" PATH)
 
 # Generated proto sources
@@ -22,11 +22,7 @@ add_custom_command(
 
 include_directories("../include/coyote")
 
-set(src_files
-    "scheduler.cc"
-    "settings.cc"
-    "operations/operation.cc"
-    "operations/operations.cc")
+set(src_files "scheduler.cc")
 
 add_library(coyote SHARED ${src_files} ${coyote_proto_srcs} ${coyote_grpc_srcs})
 target_link_libraries(coyote ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF})
