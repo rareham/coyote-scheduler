@@ -110,11 +110,11 @@ namespace coyote
 		// Only operations that are not blocked nor completed can be scheduled.
 		void schedule_next() noexcept;
 
-		//// Returns a controlled nondeterministic boolean value.
-		//bool next_boolean() noexcept;
+		// Returns a controlled nondeterministic boolean value.
+		bool next_boolean() noexcept;
 
-		//// Returns a controlled nondeterministic integer value chosen from the [0, max_value) range.
-		//int next_integer(int max_value) noexcept;
+		// Returns a controlled nondeterministic integer value chosen from the [0, max_value) range.
+		int next_integer(int max_value) noexcept;
 
 		// Returns the id of the currently scheduled operation.
 		const std::string scheduled_operation_id() noexcept;

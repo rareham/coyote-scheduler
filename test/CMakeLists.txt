@@ -18,5 +18,3 @@ foreach(test_file ${test_files})
     endif()
     add_test(NAME ${test_name} COMMAND ${test_name})
 endforeach()
-
-# add_subdirectory(integration)

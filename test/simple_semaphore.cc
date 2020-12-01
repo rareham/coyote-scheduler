@@ -36,7 +36,7 @@ void mock_exit_semaphore()
 {
 	assert(current_acquired <= max_allowed && current_acquired > 0, "exit semaphore assertion failed");
 	current_acquired--;
-	scheduler->signal_operation(SEMAPHORE_ID);
+	scheduler->signal_operations(SEMAPHORE_ID);
 }
 
 void work(std::string id)

@@ -443,6 +443,59 @@ namespace coyote
 		}
 	}
 
+	bool SchedulerClient::next_boolean() noexcept
+	{
+		std::unique_lock<std::mutex> lock(*mutex);
+#ifdef COYOTE_DEBUG_LOG
+		std::cout << "[coyote::schedule_next] choosing next boolean" << std::endl;
+#endif // COYOTE_DEBUG_LOG
+
+		GetNextBooleanRequest request;
+		request.set_scheduler_id(id);
+
+		GetNextBooleanReply reply;
+		ClientContext context;
+
+		Status status = stub->GetNextBoolean(&context, request, &reply);
+		if (!status.ok())
+		{
+			throw std::runtime_error(status.error_code() + ": " + status.error_message());
+		}
+
+		bool value = reply.value();
+#ifdef COYOTE_DEBUG_LOG
+		std::cout << "[coyote::schedule_next] chose '" << value << "'" << std::endl;
+#endif // COYOTE_DEBUG_LOG
+		return value;
+	}
+
+	int SchedulerClient::next_integer(int max_value) noexcept
+	{
+		std::unique_lock<std::mutex> lock(*mutex);
+#ifdef COYOTE_DEBUG_LOG
+		std::cout << "[coyote::schedule_next] choosing next integer" << std::endl;
+#endif // COYOTE_DEBUG_LOG
+
+		GetNextIntegerRequest request;
+		request.set_scheduler_id(id);
+		request.set_max_value(max_value);
+
+		GetNextIntegerReply reply;
+		ClientContext context;
+
+		Status status = stub->GetNextInteger(&context, request, &reply);
+		if (!status.ok())
+		{
+			throw std::runtime_error(status.error_code() + ": " + status.error_message());
+		}
+
+		int value = reply.value();
+#ifdef COYOTE_DEBUG_LOG
+		std::cout << "[coyote::schedule_next] chose '" << value << "'" << std::endl;
+#endif // COYOTE_DEBUG_LOG
+		return value;
+	}
+
 	void SchedulerClient::wait_pending_operations(std::unique_lock<std::mutex>& lock)
 	{
 		while (pending_start_operation_count > 0)
