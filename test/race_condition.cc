@@ -6,14 +6,14 @@
 
 using namespace coyote;
 
-constexpr auto WORK_THREAD_1_ID = 1;
-constexpr auto WORK_THREAD_2_ID = 2;
+const std::string WORK_THREAD_1_ID = "00000000-0000-0000-0000-000000000001";
+const std::string WORK_THREAD_2_ID = "00000000-0000-0000-0000-000000000002";
 
 SchedulerClient* scheduler;
 
 int shared_var;
 bool race_found;
-uint64_t race_seed;
+std::string trace;
 
 void work_1()
 {
@@ -67,12 +67,12 @@ void run_iteration()
 	t2.join();
 
 	scheduler->detach();
-	assert(scheduler->error_code(), ErrorCode::Success);
 }
 
 void test()
 {
-	scheduler = new SchedulerClient();
+	scheduler = new SchedulerClient("localhost:5000");
+	scheduler->connect();
 
 	for (int i = 0; i < 100; i++)
 	{
@@ -86,7 +86,7 @@ void test()
 		run_iteration();
 		if (race_found)
 		{
-			race_seed = scheduler->random_seed();
+			trace = scheduler->trace();
 			break;
 		}
 	}
@@ -97,15 +97,17 @@ void test()
 
 void replay()
 {
-	auto settings = std::make_unique<Settings>();
-	settings->use_random_strategy(race_seed);
+	auto settings = std::make_unique<Settings>("localhost:5000");
+	settings->use_replay_strategy(trace);
+
 	scheduler = new SchedulerClient(std::move(settings));
+	scheduler->connect();
 
 	// Initialize the state for replaying.
 	shared_var = 0;
 	race_found = false;
 
-	std::cout << "[test] replaying using seed " << race_seed << std::endl;
+	std::cout << "[test] replaying using given trace" << std::endl;
 	run_iteration();
 
 	assert(race_found, "race was not found.");

@@ -7,18 +7,18 @@
 
 using namespace coyote;
 
-constexpr auto RESOURCE_ID_1 = 1;
-constexpr auto RESOURCE_ID_2 = 2;
-constexpr auto WORK_THREAD_1_ID = 1;
-constexpr auto WORK_THREAD_2_ID = 2;
-constexpr auto WORK_THREAD_3_ID = 3;
+const std::string RESOURCE_ID_1 = "00000000-0000-0000-0000-000000000001";
+const std::string RESOURCE_ID_2 = "00000000-0000-0000-0000-000000000002";
+const std::string WORK_THREAD_1_ID = "00000000-0000-0000-0000-000000000001";
+const std::string WORK_THREAD_2_ID = "00000000-0000-0000-0000-000000000002";
+const std::string WORK_THREAD_3_ID = "00000000-0000-0000-0000-000000000003";
 
 SchedulerClient* scheduler;
 
 bool work_1_completed;
 bool work_2_completed;
 
-void work(int operation_id)
+void work(std::string operation_id)
 {
 	scheduler->start_operation(operation_id);
 
@@ -50,14 +50,14 @@ void run_iteration()
 	scheduler->schedule_next();
 
 	work_1_completed = true;
-	scheduler->signal_resource(RESOURCE_ID_1, WORK_THREAD_1_ID);
+	scheduler->signal_operation(RESOURCE_ID_1, WORK_THREAD_1_ID);
 
 	scheduler->schedule_next();
 
 	work_2_completed = true;
-	scheduler->signal_resource(RESOURCE_ID_2, WORK_THREAD_1_ID);
+	scheduler->signal_operation(RESOURCE_ID_2, WORK_THREAD_1_ID);
 
-	scheduler->join_operation(WORK_THREAD_1_ID);
+	scheduler->wait_operation(WORK_THREAD_1_ID);
 	t1.join();
 
 	work_1_completed = false;
@@ -72,20 +72,19 @@ void run_iteration()
 	scheduler->schedule_next();
 
 	work_1_completed = true;
-	scheduler->signal_resource(RESOURCE_ID_1);
+	scheduler->signal_operations(RESOURCE_ID_1);
 
 	scheduler->schedule_next();
 
 	work_2_completed = true;
-	scheduler->signal_resource(RESOURCE_ID_2);
+	scheduler->signal_operations(RESOURCE_ID_2);
 
-	scheduler->join_operation(WORK_THREAD_2_ID);
-	scheduler->join_operation(WORK_THREAD_3_ID);
+	scheduler->wait_operation(WORK_THREAD_2_ID);
+	scheduler->wait_operation(WORK_THREAD_3_ID);
 	t2.join();
 	t3.join();
 
 	scheduler->detach();
-	assert(scheduler->error_code(), ErrorCode::Success);
 }
 
 int main()
@@ -95,7 +94,8 @@ int main()
 
 	try
 	{
-		scheduler = new SchedulerClient();
+		scheduler = new SchedulerClient("localhost:5000");
+		scheduler->connect();
 
 		for (int i = 0; i < 100; i++)
 		{

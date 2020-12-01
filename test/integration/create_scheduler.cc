@@ -14,12 +14,9 @@ int main()
 	try
 	{
 		SchedulerClient* scheduler = new SchedulerClient("localhost:5000");
-		auto error_code = scheduler->connect();
-		check(error_code, 0);
-		error_code = scheduler->attach();
-		check(error_code, 0);
-		error_code = scheduler->detach();
-		check(error_code, 0);
+		scheduler->connect();
+		scheduler->attach();
+		scheduler->detach();
 		delete scheduler;
 	}
 	catch (std::string error)
@@ -27,7 +24,7 @@ int main()
 		std::cout << "[test] failed: " << error << std::endl;
 		return 1;
 	}
-	
+
 	std::cout << "[test] done in " << total_time(start_time) << "ms." << std::endl;
 	return 0;
 }

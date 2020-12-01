@@ -18,14 +18,6 @@ void check(bool predicate, std::string error)
 	}
 }
 
-void check(uint32_t actual, uint32_t expected)
-{
-	if (actual != expected)
-	{
-		throw "expected the '" + std::to_string(expected) + "' error code, but received '" + std::to_string(actual) + "'.";
-	}
-}
-
 size_t total_time(std::chrono::steady_clock::time_point start_time)
 {
 	auto end_time = std::chrono::steady_clock::now();

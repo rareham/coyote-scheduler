@@ -6,15 +6,15 @@ get_filename_component(coyote_proto "coyote.proto" ABSOLUTE)
 get_filename_component(coyote_proto_path "${coyote_proto}" PATH)
 
 # Generated proto sources
-set(coyote_proto_srcs "${PROJECT_SOURCE_DIR}/include/coyote/proto/coyote.pb.cc")
-set(coyote_proto_hdrs "${PROJECT_SOURCE_DIR}/include/coyote/proto/coyote.pb.h")
-set(coyote_grpc_srcs "${PROJECT_SOURCE_DIR}/include/coyote/proto/coyote.grpc.pb.cc")
-set(coyote_grpc_hdrs "${PROJECT_SOURCE_DIR}/include/coyote/proto/coyote.grpc.pb.h")
+set(coyote_proto_srcs "${PROJECT_SOURCE_DIR}/include/coyote/coyote.pb.cc")
+set(coyote_proto_hdrs "${PROJECT_SOURCE_DIR}/include/coyote/coyote.pb.h")
+set(coyote_grpc_srcs "${PROJECT_SOURCE_DIR}/include/coyote/coyote.grpc.pb.cc")
+set(coyote_grpc_hdrs "${PROJECT_SOURCE_DIR}/include/coyote/coyote.grpc.pb.h")
 add_custom_command(
     OUTPUT "${coyote_proto_srcs}" "${coyote_proto_hdrs}" "${coyote_grpc_srcs}" "${coyote_grpc_hdrs}"
     COMMAND ${_PROTOBUF_PROTOC}
-    ARGS --grpc_out "${PROJECT_SOURCE_DIR}/include/coyote/proto"
-        --cpp_out "${PROJECT_SOURCE_DIR}/include/coyote/proto"
+    ARGS --grpc_out "${PROJECT_SOURCE_DIR}/include/coyote"
+        --cpp_out "${PROJECT_SOURCE_DIR}/include/coyote"
         -I "${coyote_proto_path}"
         --plugin=protoc-gen-grpc="${_GRPC_CPP_PLUGIN_EXECUTABLE}"
         "${coyote_proto}"

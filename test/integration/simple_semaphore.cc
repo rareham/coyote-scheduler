@@ -7,8 +7,10 @@
 
 using namespace coyote;
 
-constexpr auto THREAD_COUNT = 3;
-constexpr auto SEMAPHORE_ID = 1;
+const std::string WORK_THREAD_1_ID = "00000000-0000-0000-0000-000000000001";
+const std::string WORK_THREAD_2_ID = "00000000-0000-0000-0000-000000000002";
+const std::string WORK_THREAD_3_ID = "00000000-0000-0000-0000-000000000003";
+const std::string SEMAPHORE_ID = "00000000-0000-0000-0000-000000000001";
 
 SchedulerClient* scheduler;
 
@@ -34,10 +36,10 @@ void mock_exit_semaphore()
 {
 	assert(current_acquired <= max_allowed && current_acquired > 0, "exit semaphore assertion failed");
 	current_acquired--;
-	scheduler->signal_resource(SEMAPHORE_ID);
+	scheduler->signal_operation(SEMAPHORE_ID);
 }
 
-void work(int id)
+void work(std::string id)
 {
 	scheduler->start_operation(id);
 	mock_enter_semaphore();
@@ -58,29 +60,31 @@ void work(int id)
 void run_iteration()
 {
 	scheduler->attach();
-	
+
 	scheduler->create_resource(SEMAPHORE_ID);
 
-	std::vector<std::unique_ptr<std::thread>> threads;
-	for (int i = 0; i < THREAD_COUNT; i++)
-	{
-		int thread_id = i + 1;
-		scheduler->create_operation(thread_id);
-		threads.push_back(std::make_unique<std::thread>(work, thread_id));
-	}
+	scheduler->create_operation(WORK_THREAD_1_ID);
+	std::thread t1(work, WORK_THREAD_1_ID);
+
+	scheduler->create_operation(WORK_THREAD_2_ID);
+	std::thread t2(work, WORK_THREAD_2_ID);
+
+	scheduler->create_operation(WORK_THREAD_3_ID);
+	std::thread t3(work, WORK_THREAD_3_ID);
 
 	scheduler->schedule_next();
 	assert(max_value_observed <= max_allowed, "the observed max value is greater than allowed");
 
-	for (int i = 0; i < THREAD_COUNT; i++)
-	{
-		int thread_id = i + 1;
-		scheduler->join_operation(thread_id);
-		threads[i]->join();
-	}
+	scheduler->wait_operation(WORK_THREAD_1_ID);
+	t1.join();
+
+	scheduler->wait_operation(WORK_THREAD_2_ID);
+	t2.join();
+
+	scheduler->wait_operation(WORK_THREAD_3_ID);
+	t3.join();
 
 	scheduler->detach();
-	assert(scheduler->error_code(), ErrorCode::Success);
 }
 
 int main()
@@ -90,7 +94,8 @@ int main()
 
 	try
 	{
-		scheduler = new SchedulerClient();
+		scheduler = new SchedulerClient("localhost:5000");
+		scheduler->connect();
 
 		for (int i = 0; i < 100; i++)
 		{

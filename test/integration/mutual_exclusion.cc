@@ -6,9 +6,9 @@
 
 using namespace coyote;
 
-constexpr auto WORK_THREAD_1_ID = 1;
-constexpr auto WORK_THREAD_2_ID = 2;
-constexpr auto LOCK_ID = 1;
+const std::string WORK_THREAD_1_ID = "00000000-0000-0000-0000-000000000001";
+const std::string WORK_THREAD_2_ID = "00000000-0000-0000-0000-000000000002";
+const std::string LOCK_ID = "00000000-0000-0000-0000-000000000001";
 
 SchedulerClient* scheduler;
 
@@ -38,7 +38,7 @@ void mock_release()
 	scheduler->schedule_next();
 	assert(lock_status == 1, "lock status is not 1.");
 	lock_status = 0;
-	scheduler->signal_resource(LOCK_ID);
+	scheduler->signal_operation(LOCK_ID);
 }
 
 void work_1()
@@ -78,13 +78,12 @@ void run_iteration()
 	scheduler->create_operation(WORK_THREAD_2_ID);
 	std::thread t2(work_2);
 
-	scheduler->join_operation(WORK_THREAD_1_ID);
-	scheduler->join_operation(WORK_THREAD_2_ID);
+	scheduler->wait_operation(WORK_THREAD_1_ID);
+	scheduler->wait_operation(WORK_THREAD_2_ID);
 	t1.join();
 	t2.join();
 
 	scheduler->detach();
-	assert(scheduler->error_code(), ErrorCode::Success);
 }
 
 int main()
@@ -94,7 +93,8 @@ int main()
 
 	try
 	{
-		scheduler = new SchedulerClient();
+		scheduler = new SchedulerClient("localhost:5000");
+		scheduler->connect();
 
 		for (int i = 0; i < 100; i++)
 		{

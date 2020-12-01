@@ -6,8 +6,8 @@
 
 using namespace coyote;
 
-const std::string WORK_THREAD_1_ID = "c4f16b2e-feda-406b-9663-19fa8576e3a5";
-const std::string WORK_THREAD_2_ID = "3e55149b-be76-4bae-94cc-2f320f2eccca";
+const std::string WORK_THREAD_1_ID = "00000000-0000-0000-0000-000000000001";
+const std::string WORK_THREAD_2_ID = "00000000-0000-0000-0000-000000000002";
 
 SchedulerClient* scheduler;
 
@@ -33,13 +33,12 @@ void run_iteration()
 	scheduler->create_operation(WORK_THREAD_2_ID);
 	std::thread t2(work_2);
 
-	scheduler->join_operation(WORK_THREAD_1_ID);
-	scheduler->join_operation(WORK_THREAD_2_ID);
+	scheduler->wait_operation(WORK_THREAD_1_ID);
+	scheduler->wait_operation(WORK_THREAD_2_ID);
 	t1.join();
 	t2.join();
 
 	scheduler->detach();
-	// assert(scheduler->error_code(), ErrorCode::Success);
 }
 
 int main()
@@ -50,7 +49,7 @@ int main()
 	try
 	{
 		scheduler = new SchedulerClient("localhost:5000");
-		scheduler->init();
+		scheduler->connect();
 
 		for (int i = 0; i < 100; i++)
 		{
