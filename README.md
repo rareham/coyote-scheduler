@@ -3,7 +3,7 @@
 ![Windows CI](https://github.com/microsoft/coyote-scheduler/workflows/Windows%20CI/badge.svg)
 ![Linux CI](https://github.com/microsoft/coyote-scheduler/workflows/Linux%20CI/badge.svg)
 
-A C++ header-only library for **language-agnostic systematic concurrency testing**.
+An experimental C++ header-only library for **language-agnostic systematic concurrency testing**.
 
 The library provides APIs that allow you to instrument your runtime for (1) declaring concurrent
 _operations_ and synchronization _resources_. (2) taking control of these operations and resources,
@@ -14,6 +14,10 @@ This library is part of the [Coyote](https://microsoft.github.io/coyote/) projec
 Research](https://www.microsoft.com/en-us/research/). To learn more about the research behind our
 technology, check out our published papers
 [here](https://microsoft.github.io/coyote/learn/resources/publications).
+
+We welcome open source contributions.
+
+**Note:** This library is not an officially supported project and is provided As-Is.
 
 ## How to build
 On Linux, run the following bash script from the root directory:
