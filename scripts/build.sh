@@ -2,13 +2,12 @@
 
 echo "Building the Coyote native scheduler..."
 
-# Install ninja build dependency, if it does not already exist
-sudo apt-get install ninja-build -y
+THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 # Create build directory
-rm -r ./build
-mkdir ./build
-cd ./build
+rm -r ${THIS_DIR}/../build
+mkdir ${THIS_DIR}/../build
+pushd ${THIS_DIR}/../build
 
 # Build the project
 cmake -G "Ninja" -DCMAKE_BUILD_TYPE=Release ..
@@ -19,7 +18,7 @@ then
   retVal=$?
 fi
 
-cd ..
+popd
 
 if [ $retVal -eq 0 ]
 then
