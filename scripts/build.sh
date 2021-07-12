@@ -22,6 +22,7 @@ popd
 
 if [ $retVal -eq 0 ]
 then
+  cp ${THIS_DIR}/../build/src/libcoyote.so /usr/lib/libcoyote.so
   echo "Successfully built the project."
 else
   echo "Failed to build the project."
