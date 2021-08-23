@@ -1,0 +1,66 @@
+* atomic load notes
+  @brief builds the reads from set for a load based on the reads from relation.
+ 
+  A load reads from a store that does not happen-after it.
+
+  The following coherence rules tell us what stores a load should read from.
+ 
+  The reads-from relation is governed by the coherence axioms
+
+  W-W => if a store A happens-before a store B then the modifcation order 
+  should produce the same order.
+ 
+  R-R => if a load A happens-before a load B, and A takes is value from X the B
+  shall take its value from X or stores later in the modification order. 
+
+  R-W => if a load A happens-before a store B, the A should read from a store X that 
+  preceeds B in the modification order.
+
+  W-R => if a store A happens before a load B then B may read from A or any X that 
+  occurs later to A in the modification order.
+
+  Happens-before is built using sequence-before U synchronizes-with.
+  
+  Some Specific happens before rules :
+ 
+  A load-acquire synchronises with the store-release and reads from the release or any 
+  rmw that happen-before the load-acquire.
+
+  A rmw synchronises with the latest store/rmw and reads from the latest store/rmw.
+
+  A scq_cst load reads from the latest seq_cst store or store happening after 
+  latest seq_cst store.
+
+ 
+  Note : all the relations are dynamic - built on an actual execution.
+
+  Global sequence vs clock vectors
+  Vector clocks certainly help in deciding the happens-before order.
+  (Also why do we want to do away with them.)
+ 
+  But, an alternative would be maintain synchronising points across threads and if 
+  the execution enforces a synchronisation then the statements before the 
+  sync-point(release) and statements after the sync-point (acquire).
+ 
+  1. maintain acquire-release points across threads.
+  2. maintain latest seq_cst store across all the threads.
+
+
+  The sequence-before ordering is enforced by thread-local ordering.
+
+  Building a read-from set.
+ 
+  Steps :
+  Given a load instruction.
+
+  input : load instruction and the statespace 
+
+  if(is_seq_cst(l) || is_acquire(l)) :
+  apply constraints
+
+  if(is_rmw(l)) :
+  apply constraints
+
+  else :
+  get all the stores sequenced before the load and also the loads stores 
+  that happen before the seq_cst operation and release operation   
