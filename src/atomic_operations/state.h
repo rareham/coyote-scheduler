@@ -105,6 +105,7 @@ class Operation
   }
 
   bool is_seq_cst() {
+    seq_cst = (oper_order == operation_order::seq_cst) ? true:false;
     return seq_cst;
   }
 };
@@ -148,11 +149,12 @@ protected:
   bool is_acquire;
   std::vector<Operation*> rf_set;
   ClockVector *cv;
+  ClockVector *rf_cv;
 
 public:
   Load(value, memory_order, thread_id);
   void build_rf_set();
-  std::vector<value>* get_rf_set();
+  std::vector<Operation*> get_rf_set();
   void* load_latest();
   void execute();
   void create_cv();
@@ -192,17 +194,22 @@ public:
 class RMW : Operation
 {
 protected:
+  bool return_value;
+  bool is_rmw_store;
+  ClockVector *cv;
   memory_order success_mo;
   memory_order failure_mo;
   value expected;
   value desired;
-  bool return_value;
-  ClockVector *cv;
   
 public:
   RMW(location, value, memory_order, value, memory_order, thread_id);
   void execute();
   bool get_return_value();
+  bool is_store()
+  {
+    return is_rmw_store;
+  }
   void create_cv();
 };
 
@@ -216,11 +223,11 @@ public:
 class FetchOp : Operation
 {
 protected:
-  memory_order success_mo;
+  binary_op bop;
+  bool is_rmw_store;
+  ClockVector *cv;
   value return_value;
   value operand;
-  ClockVector *cv;
-  binary_op bop;
   
 public:
   FetchOp(location, value, memory_order, thread_id, binary_op);
@@ -270,19 +277,19 @@ private:
   //@brief mapping the internal thread id with ThreadState
   std::unordered_map<thread_id, ThreadState*> thread_id_obj_map;
   //@brief all the operations performaed at a location
-  std::unordered_map<location, std::vector<Operation*>> loc_operations;
+  std::unordered_map<location, std::vector<Operation*>> obj_str_map;
   //@brief all operations
-  std::unordered_map<location, thread_operation_list> obj_oper_thrd_map;
+  std::unordered_map<location, thread_operation_list> obj_thread_oper_map;
   //@brief list of store actions by the thread at a location
-  std::unordered_map<location, thread_operation_list> obj_str_thread_map; 
+  std::unordered_map<location, thread_operation_list> obj_thread_str_map; 
   //@brief list of load actions by the thread at a location
-  std::unordered_map<location, thread_operation_list> obj_ld_thread_map;
+  std::unordered_map<location, thread_operation_list> obj_thread_ld_map;
   //@brief list of load actions by the thread at a location
-  std::unordered_map<location, thread_operation_list> obj_rmw_thread_map;
+  std::unordered_map<location, thread_operation_list> obj_thread_rmw_map;
   //@brief last thread operation
-  std::unordered_map<location, thread_operation> obj_last_oper_thread_map;
+  std::unordered_map<location, thread_operation> obj_thread_last_oper_map;
   //@brief the latest sequential store action
-  std::unordered_map<location, Operation*> obj_last_seq_thread_map;
+  std::unordered_map<location, Operation*> obj_last_seq_map;
 
   void record_operation(Operation *);
   void record_atomic_store(Operation *);
@@ -303,9 +310,14 @@ public:
 
   void record_atomic_operation(Operation *);
   void record_thread(Operation*, thread_id);
+  void record_modification_order(Operation *);
   std::int16_t get_num_of_threads();
   Operation* get_last_store(location);
-  Operation* get_last_seq_cst(location);
+  Operation* get_last_seq_cst_store(location);
+  thread_operation_list get_thread_stores(location loc)
+  {
+    return obj_thread_str_map.at(loc);
+  }
 };
 
 extern GlobalState *global_state;

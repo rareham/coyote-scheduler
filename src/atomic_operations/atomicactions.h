@@ -5,7 +5,7 @@
 
 void atomic_init(location , value , thread_id);
   
-value choose_random(std::vector<value>*);
+Operation* choose_random(std::vector<Operation*>);
 
 uint64_t atomic_load(location, memory_order, thread_id);
 
