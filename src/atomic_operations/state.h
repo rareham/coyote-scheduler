@@ -26,6 +26,15 @@ enum binary_op {add_op, sub_op, and_op, or_op, xor_op};
 
 void initialise_global_state();
 
+class GlobalState;
+class ThreadState;
+class Operation;
+class Store;
+class Load;
+class RMW;
+class FetchOp;
+class Fence;
+class ClockVector;
 
 /**
  * @brief models the thread
@@ -63,6 +72,7 @@ class Operation
   operation_order oper_order;
   sequence_number seq_no;
   bool seq_cst;
+  ClockVector *cv;
 
  public:
   Operation(location, memory_order, operation_type);  
@@ -103,11 +113,15 @@ class Operation
   {
     return thread_state;
   }
-
+  
   bool is_seq_cst() {
     seq_cst = (oper_order == operation_order::seq_cst) ? true:false;
     return seq_cst;
   }
+
+  bool happens_before(Operation *oper);
+  
+  void create_cv();
 };
 
 
@@ -120,13 +134,12 @@ class Operation
 class ClockVector
 {
 public:
-  ClockVector(Operation *act = NULL);
+  ClockVector(Operation *);
   ~ClockVector();
-  bool merge(ClockVector *cv);
-  bool minmerge(ClockVector *cv);
-  bool synchronized_since(Operation *act);
-  void print();
-  logical_clock getClock(thread_id thread);
+  bool merge(ClockVector *);
+  bool minmerge(ClockVector *);
+  bool synchronized_since(Operation *);
+  logical_clock getClock(thread_id);
   
 private:
   //@brief array of logical clocks
@@ -148,16 +161,22 @@ class Load : Operation
 protected:
   bool is_acquire;
   std::vector<Operation*> rf_set;
-  ClockVector *cv;
   ClockVector *rf_cv;
+  value load_value;
 
 public:
   Load(value, memory_order, thread_id);
   void build_rf_set();
   std::vector<Operation*> get_rf_set();
   void* load_latest();
+  void create_rf_cv();
+  Operation* choose_random(std::vector<Operation*>);
   void execute();
-  void create_cv();
+  void print_rf_set();
+  value get_load_value()
+  {
+    return load_value;
+  }
 };
 
 
@@ -172,7 +191,6 @@ class Store : Operation
 protected:
   bool is_release;
   value store_value;
-  ClockVector *cv;
 
 public:
   Store(location, value, memory_order, thread_id);
@@ -196,7 +214,6 @@ class RMW : Operation
 protected:
   bool return_value;
   bool is_rmw_store;
-  ClockVector *cv;
   memory_order success_mo;
   memory_order failure_mo;
   value expected;
@@ -210,7 +227,6 @@ public:
   {
     return is_rmw_store;
   }
-  void create_cv();
 };
 
 
@@ -225,7 +241,6 @@ class FetchOp : Operation
 protected:
   binary_op bop;
   bool is_rmw_store;
-  ClockVector *cv;
   value return_value;
   value operand;
   
@@ -233,7 +248,6 @@ public:
   FetchOp(location, value, memory_order, thread_id, binary_op);
   void execute();
   value get_return_value();
-  void create_cv();
 };
 
   
@@ -246,7 +260,6 @@ public:
 class Fence : Operation
 {
 protected:
-  ClockVector *cv;
   
 public:
   Fence(memory_order, thread_id);

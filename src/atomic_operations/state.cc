@@ -169,17 +169,22 @@ void GlobalState::record_atomic_fence(Operation *oper)
 Operation* GlobalState::get_last_store(location loc)
 {
   if (obj_str_map.find(loc) == obj_str_map.end()) {
-#ifdef ATOMIC_DEBUG_MODEL
+  #ifdef ATOMIC_DEBUG_MODEL
     printf("GlobalState::get_last_store : Location Not Found \n");
-#endif
+  #endif
     return nullptr;
   }
   std::vector<Operation*> opers = obj_str_map[loc];
-  for (int i = opers.size(); i > 0; i--) {
-    if (opers[i]->get_operation_type() == operation_type::store) {
-      return opers[i];
+
+  std::vector<Operation*>::reverse_iterator oper_iter = opers.rbegin();
+  while (oper_iter != opers.rend())
+    {
+      if ((*oper_iter)->get_operation_type() == operation_type::store)
+	{
+	  return *oper_iter;
+	}
+      oper_iter++;
     }
-  }
   #ifdef ATOMIC_DEBUG_MODEL
     printf("GlobalState::get_last_store : Store Not Found \n");
   #endif
@@ -216,11 +221,25 @@ ThreadState::ThreadState(thread_id thrd_id)
 Operation::Operation(location address, memory_order oper_order, operation_type oper_type)
   : loc(address), oper_order((operation_order)oper_order), oper_type(oper_type)
 {
-  if ((operation_order)oper_order == operation_order::seq_cst) {
-    seq_cst = true;
-  }
+  if ((operation_order)oper_order == operation_order::seq_cst)
+    {
+      seq_cst = true;
+    }
 }
 
+
+
+bool Operation::happens_before(Operation *oper)
+{
+  return oper->cv->synchronized_since(this);
+}
+
+
+
+void Operation::create_cv()
+{
+  cv = new ClockVector(this);
+}
 
 
 Load::Load(location load_address, memory_order load_order, thread_id tid)
@@ -236,21 +255,91 @@ Load::Load(location load_address, memory_order load_order, thread_id tid)
   sequence_number seq_no = global_state->get_sequence_number();
   set_sequence_number(seq_no);
   global_state->record_thread(this, tid);
-  Load::create_cv();
+  create_cv();
 }
 
 
 
+/**
+ *
+ *
+ **/
 void Load::execute()
 {
   global_state->record_atomic_operation(this);
+  build_rf_set();
+  Store *rf_store = (Store*)choose_random(get_rf_set());
+  load_value = rf_store->get_value();
 }
 
 
 
-void Load::create_cv()
+/**
+ * // TODO: Associate the scheduler randomness.
+ **/
+Operation* Load::choose_random(std::vector<Operation*> rf_set)
 {
-  cv = new ClockVector(this);
+  return rf_set[0];
+}
+
+
+
+/**
+ *
+ * @brief collects all the stores happening before and happens-before the load
+ *
+ **/
+void Load::build_rf_set()
+{
+  Operation *last_sc_write = nullptr;
+  location loc = this->get_operation_location();
+
+  thread_operation_list inner_map = global_state->get_thread_stores(loc);
+
+
+  if (this->is_seq_cst())
+    {
+      Operation *last_sc_write = global_state->get_last_seq_cst_store(loc);
+    }
+
+  thread_operation_list::iterator thread_iter = inner_map.begin();
+  //for each thread
+  while (thread_iter != inner_map.end())
+    {
+      std::vector<Operation*> store_opers = thread_iter->second;
+      //for each action by the thread, from latest to earliest
+      std::vector<Operation*>::reverse_iterator store_iter = store_opers.rbegin(); 
+      while (store_iter != store_opers.rend())
+	{
+	  Operation *store_oper = *store_iter;
+	  if (store_oper == this)
+	    continue;
+
+	  bool allow_load = true;
+
+	  if (this->is_seq_cst() &&
+	      (store_oper->is_seq_cst() ||
+	       (last_sc_write != NULL && store_oper->happens_before(last_sc_write))) &&
+	      store_oper != last_sc_write)
+	    allow_load = false;
+
+	  if (allow_load) {
+	    rf_set.push_back(store_oper);
+	  }
+
+	  if (store_oper->happens_before(this))
+	    break;
+
+	  store_iter++;
+	}
+      thread_iter++;
+    }
+}
+
+
+
+void Load::create_rf_cv()
+{
   rf_cv = new ClockVector(this);
 }
 
@@ -262,6 +351,20 @@ std::vector<Operation*> Load::get_rf_set()
 }
 
 
+
+void Load::print_rf_set()
+{
+  std::vector<Operation*>::iterator rf_set_iter = rf_set.begin();
+  #ifdef ATOMIC_DEBUG_MODEL
+  while (rf_set_iter != rf_set.end())
+    {
+      Store *rf_store = (Store*)*rf_set_iter;
+      printf("Load::print_rf_set : location = %ld , value = %ld"	\
+	     ,(*rf_set_iter)->get_operation_location(), rf_store->get_value());
+    }
+  #endif
+}
+
 /**
  * @brief prepare the atomic store operations
  *
@@ -270,42 +373,37 @@ std::vector<Operation*> Load::get_rf_set()
 Store::Store(location store_address, value store_value, memory_order store_order, \
 	     thread_id tid) : store_value(store_value),
 			      Operation(store_address, store_order,operation_type::store)
-{
-  #ifdef ATOMIC_MODEL_DEBUG
-    printf("Store::Store : Storing at the atomic location : %x \n with order, \
+    {
+#ifdef ATOMIC_MODEL_DEBUG
+      printf("Store::Store : Storing at the atomic location : %x \n with order, \
     value and  tid : %ul %ul %ul\n",store_address, store_order, store_value, tid);
-  #endif
+#endif
 
-  assert(store_address && "Store::Store : store_address is NULL");
+      assert(store_address && "Store::Store : store_address is NULL");
 
-  sequence_number seq_no = global_state->get_sequence_number();
-  set_sequence_number(seq_no);
-  global_state->record_thread(this, tid);
-  Store::create_cv();
-}
-
-
-
-void Store::create_cv()
-{
-  cv = new ClockVector(this);
-}
-
-/**
- * record the atomic store operation
- **/
-void Store::execute()
-{
-  global_state->record_atomic_operation(this);
-}
+      sequence_number seq_no = global_state->get_sequence_number();
+      set_sequence_number(seq_no);
+      global_state->record_thread(this, tid);
+      create_cv();
+    }
 
 
-/**
- * @brief records the rmw operation
- * 
- **/
-RMW::RMW(location load_store_address, value expected, memory_order success_order, \
-	 value desired, memory_order failure_order, thread_id tid)
+
+  /**
+   * record the atomic store operation
+   **/
+  void Store::execute()
+  {
+    global_state->record_atomic_operation(this);
+  }
+
+
+  /**
+   * @brief records the rmw operation
+   * 
+   **/
+  RMW::RMW(location load_store_address, value expected, memory_order success_order, \
+	   value desired, memory_order failure_order, thread_id tid)
   : expected(expected),
     desired(desired),
     success_mo(success_order),
@@ -316,13 +414,6 @@ RMW::RMW(location load_store_address, value expected, memory_order success_order
   set_sequence_number(seq_no);
   global_state->record_thread(this, tid);
   create_cv();
-}
-
-
-
-void RMW::create_cv()
-{
-  cv = new ClockVector(this);
 }
 
 
@@ -375,13 +466,6 @@ FetchOp::FetchOp(location load_store_address, value operand, memory_order succes
 {
   //all fetch operations are successful stores
   is_rmw_store = true;
-}
-
-
-
-void FetchOp::create_cv()
-{
-  cv = new ClockVector(this);
 }
 
 
@@ -498,15 +582,4 @@ logical_clock ClockVector::getClock(thread_id tid)
     return clock_vector[tid];
   else
     return 0;
-}
-
-
-
-void ClockVector::print()
-{
-  /*int i;
-  model_print("(");
-  for (i = 0;i < num_threads;i++)
-    printf("%2u%s", clock_vector[i], (i == num_threads - 1) ? ")\n" : ", ");
-  */
 }

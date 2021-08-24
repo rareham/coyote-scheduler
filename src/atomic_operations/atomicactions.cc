@@ -12,17 +12,6 @@
 GlobalState *global_state = nullptr;
 
 
-
-/**
- * // TODO: Associate the scheduler randomness.
- **/
-Operation* choose_random(std::vector<Operation*> *rf_set)
-{
-  return (*rf_set)[0];
-}
-
-
-
 /**
  * // TODO: Reconsider memory order for the operation
  *
@@ -52,8 +41,7 @@ value atomic_load(location load_address, memory_order load_order , thread_id tid
     }
   Load *l = new Load(load_address, load_order, tid);
   l->execute();
-  Store *rf_oper = (Store*)choose_random(l->get_rf_set());
-  return rf_oper->get_value();
+  return l->get_load_value();
 }
 
 

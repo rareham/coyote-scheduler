@@ -4,8 +4,6 @@
 #endif
 
 void atomic_init(location , value , thread_id);
-  
-Operation* choose_random(std::vector<Operation*>);
 
 uint64_t atomic_load(location, memory_order, thread_id);
 
