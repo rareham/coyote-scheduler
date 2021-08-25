@@ -1,18 +1,17 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include <atomic>
 #include <thread>
 
 #include "test.h"
-#include "atomicactions.h"
+#include "coyote/operations/atomicactions.h"
 
 using namespace coyote;
 
 constexpr auto MAIN_THREAD_ID = 1;
-constexpr auto WORK_THREAD_1_ID = 2;
-constexpr auto WORK_THREAD_2_ID = 3;
-constexpr auto LOCK_ID = 1;
+auto WORK_THREAD_1_ID = 2;
+auto WORK_THREAD_2_ID = 3;
+auto LOCK_ID = 1;
 
 std::atomic<int> x;
 std::atomic<int> y;
@@ -21,8 +20,8 @@ Scheduler* scheduler;
 void work_1()
 {
 	scheduler->start_operation(WORK_THREAD_1_ID);
-	atomic_store(&x, 1, std::memory_order_relaxed, WORK_THREAD_1_ID);
-	atomic_store(&y, 2, std::memory_order_relaxed, WORK_THREAD_1_ID);
+	atomic_store(&x, 1, operation_order::relaxed, WORK_THREAD_1_ID);
+	atomic_store(&y, 2, operation_order::relaxed, WORK_THREAD_1_ID);
 	scheduler->schedule_next();
 	scheduler->complete_operation(WORK_THREAD_1_ID);
 }
@@ -30,9 +29,9 @@ void work_1()
 void work_2()
 {
 	scheduler->start_operation(WORK_THREAD_2_ID);
-	atomic_load(&x, std::memory_order_relaxed, WORK_THREAD_2_ID);
+	atomic_load(&x, operation_order::relaxed, WORK_THREAD_2_ID);
 	scheduler->schedule_next();
-	atomic_load(&y, std::memory_order_relaxed, WORK_THREAD_2_ID);
+	atomic_load(&y, operation_order::relaxed, WORK_THREAD_2_ID);
 	scheduler->schedule_next();
 	scheduler->complete_operation(WORK_THREAD_2_ID);
 }

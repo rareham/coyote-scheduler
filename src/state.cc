@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-#include "state.h"
+#include "operations/state.h"
 
 
 void initialise_global_state()
@@ -49,7 +49,7 @@ std::int16_t GlobalState::get_num_of_threads()
  * - operation for a location.
  * - operation by a thread for a location.
  **/
-void GlobalState::record_operation(Operation *oper)
+void GlobalState::record_operation(Atomic_Operation *oper)
 {
   location loc = oper->get_operation_location();
   // TODO: Do we have to capture other operations for a location?
@@ -67,7 +67,7 @@ void GlobalState::record_operation(Operation *oper)
  * @brief record the atomic operation updating 
  * the thread state and the
  **/
-void GlobalState::record_atomic_operation(Operation *oper)
+void GlobalState::record_atomic_operation(Atomic_Operation *oper)
 {
   assert(oper);
   operation_type oper_type = oper->get_operation_type();
@@ -99,7 +99,7 @@ void GlobalState::record_atomic_operation(Operation *oper)
  * or returns exisiting thread state
  *
  **/
-void GlobalState::record_thread(Operation *oper, thread_id thrd_id)
+void GlobalState::record_thread(Atomic_Operation *oper, thread_id thrd_id)
 {
   ThreadState *thrd_state = nullptr;
   if (thread_id_map.find(thrd_id) == thread_id_map.end()) {//new thread
@@ -122,7 +122,7 @@ void GlobalState::record_thread(Operation *oper, thread_id thrd_id)
 
 
 
-void GlobalState::record_atomic_store(Operation *oper)
+void GlobalState::record_atomic_store(Atomic_Operation *oper)
 {
   location loc = oper->get_operation_location();
   thread_operation_list inner_map = obj_thread_str_map[loc];
@@ -136,12 +136,12 @@ void GlobalState::record_atomic_store(Operation *oper)
 
 
 
-void GlobalState::record_atomic_load(Operation *oper)
+void GlobalState::record_atomic_load(Atomic_Operation *oper)
 {}
 
 
 
-void GlobalState::record_atomic_rmw(Operation *oper)
+void GlobalState::record_atomic_rmw(Atomic_Operation *oper)
 {
   location loc = oper->get_operation_location();
   if (oper->get_operation_type() == operation_type::rmw &&
@@ -153,7 +153,7 @@ void GlobalState::record_atomic_rmw(Operation *oper)
 }
 
 
-void GlobalState::record_modification_order(Operation *oper)
+void GlobalState::record_modification_order(Atomic_Operation *oper)
 {
   location loc = oper->get_operation_location();
   thread_operation_list inner_map = obj_thread_str_map[loc];
@@ -161,12 +161,12 @@ void GlobalState::record_modification_order(Operation *oper)
 }
 
 
-void GlobalState::record_atomic_fence(Operation *oper)
+void GlobalState::record_atomic_fence(Atomic_Operation *oper)
 {}
 
 
 
-Operation* GlobalState::get_last_store(location loc)
+Atomic_Operation* GlobalState::get_last_store(location loc)
 {
   if (obj_str_map.find(loc) == obj_str_map.end()) {
   #ifdef ATOMIC_DEBUG_MODEL
@@ -174,9 +174,9 @@ Operation* GlobalState::get_last_store(location loc)
   #endif
     return nullptr;
   }
-  std::vector<Operation*> opers = obj_str_map[loc];
+  std::vector<Atomic_Operation*> opers = obj_str_map[loc];
 
-  std::vector<Operation*>::reverse_iterator oper_iter = opers.rbegin();
+  std::vector<Atomic_Operation*>::reverse_iterator oper_iter = opers.rbegin();
   while (oper_iter != opers.rend())
     {
       if ((*oper_iter)->get_operation_type() == operation_type::store)
@@ -197,7 +197,7 @@ Operation* GlobalState::get_last_store(location loc)
  * @brief returns the latest seq_cst store to the location
  *
  **/
-Operation* GlobalState::get_last_seq_cst_store(location loc)
+Atomic_Operation* GlobalState::get_last_seq_cst_store(location loc)
 {
   if (obj_last_seq_map.find(loc) == obj_last_seq_map.end()) {
     #ifdef ATOMIC_DEBUG_MODEL
@@ -205,7 +205,7 @@ Operation* GlobalState::get_last_seq_cst_store(location loc)
     #endif
     return nullptr;
   }
-  Operation *seq_cst_str = obj_last_seq_map[loc];
+  Atomic_Operation *seq_cst_str = obj_last_seq_map[loc];
   return seq_cst_str;
 }
 
@@ -218,7 +218,7 @@ ThreadState::ThreadState(thread_id thrd_id)
 
 
 
-Operation::Operation(location address, memory_order oper_order, operation_type oper_type)
+Atomic_Operation::Atomic_Operation(location address, operation_order oper_order, operation_type oper_type)
   : loc(address), oper_order((operation_order)oper_order), oper_type(oper_type)
 {
   if ((operation_order)oper_order == operation_order::seq_cst)
@@ -229,21 +229,21 @@ Operation::Operation(location address, memory_order oper_order, operation_type o
 
 
 
-bool Operation::happens_before(Operation *oper)
+bool Atomic_Operation::happens_before(Atomic_Operation *oper)
 {
   return oper->cv->synchronized_since(this);
 }
 
 
 
-void Operation::create_cv()
+void Atomic_Operation::create_cv()
 {
   cv = new ClockVector(this);
 }
 
 
-Load::Load(location load_address, memory_order load_order, thread_id tid)
-  : Operation(load_address, load_order, operation_type::load)
+Load::Load(location load_address, operation_order load_order, thread_id tid)
+  : Atomic_Operation(load_address, load_order, operation_type::load)
 {
   #ifdef ATOMIC_MODEL_DEBUG
     printf("Load::Load : Loading from the atomic location : %x \n with order, \
@@ -277,7 +277,7 @@ void Load::execute()
 /**
  * // TODO: Associate the scheduler randomness.
  **/
-Operation* Load::choose_random(std::vector<Operation*> rf_set)
+Atomic_Operation* Load::choose_random(std::vector<Atomic_Operation*> rf_set)
 {
   return rf_set[0];
 }
@@ -291,7 +291,7 @@ Operation* Load::choose_random(std::vector<Operation*> rf_set)
  **/
 void Load::build_rf_set()
 {
-  Operation *last_sc_write = nullptr;
+  Atomic_Operation *last_sc_write = nullptr;
   location loc = this->get_operation_location();
 
   thread_operation_list inner_map = global_state->get_thread_stores(loc);
@@ -299,19 +299,19 @@ void Load::build_rf_set()
 
   if (this->is_seq_cst())
     {
-      Operation *last_sc_write = global_state->get_last_seq_cst_store(loc);
+      Atomic_Operation *last_sc_write = global_state->get_last_seq_cst_store(loc);
     }
 
   thread_operation_list::iterator thread_iter = inner_map.begin();
   //for each thread
   while (thread_iter != inner_map.end())
     {
-      std::vector<Operation*> store_opers = thread_iter->second;
+      std::vector<Atomic_Operation*> store_opers = thread_iter->second;
       //for each action by the thread, from latest to earliest
-      std::vector<Operation*>::reverse_iterator store_iter = store_opers.rbegin(); 
+      std::vector<Atomic_Operation*>::reverse_iterator store_iter = store_opers.rbegin(); 
       while (store_iter != store_opers.rend())
 	{
-	  Operation *store_oper = *store_iter;
+	  Atomic_Operation *store_oper = *store_iter;
 	  if (store_oper == this)
 	    continue;
 
@@ -345,7 +345,7 @@ void Load::create_rf_cv()
 
 
 
-std::vector<Operation*> Load::get_rf_set()
+std::vector<Atomic_Operation*> Load::get_rf_set()
 {
   return rf_set;
 }
@@ -354,12 +354,12 @@ std::vector<Operation*> Load::get_rf_set()
 
 void Load::print_rf_set()
 {
-  std::vector<Operation*>::iterator rf_set_iter = rf_set.begin();
+  std::vector<Atomic_Operation*>::iterator rf_set_iter = rf_set.begin();
   #ifdef ATOMIC_DEBUG_MODEL
   while (rf_set_iter != rf_set.end())
     {
       Store *rf_store = (Store*)*rf_set_iter;
-      printf("Load::print_rf_set : location = %ld , value = %ld"	\
+      printf("Load::print_rf_set : location = %p , value = %ld"	\
 	     ,(*rf_set_iter)->get_operation_location(), rf_store->get_value());
     }
   #endif
@@ -370,9 +370,9 @@ void Load::print_rf_set()
  *
  * 
  */
-Store::Store(location store_address, value store_value, memory_order store_order, \
+Store::Store(location store_address, value store_value, operation_order store_order, \
 	     thread_id tid) : store_value(store_value),
-			      Operation(store_address, store_order,operation_type::store)
+			      Atomic_Operation(store_address, store_order,operation_type::store)
     {
 #ifdef ATOMIC_MODEL_DEBUG
       printf("Store::Store : Storing at the atomic location : %x \n with order, \
@@ -402,13 +402,13 @@ Store::Store(location store_address, value store_value, memory_order store_order
    * @brief records the rmw operation
    * 
    **/
-  RMW::RMW(location load_store_address, value expected, memory_order success_order, \
-	   value desired, memory_order failure_order, thread_id tid)
+  RMW::RMW(location load_store_address, value expected, operation_order success_order, \
+	   value desired, operation_order failure_order, thread_id tid)
   : expected(expected),
     desired(desired),
     success_mo(success_order),
     failure_mo(failure_order),
-    Operation(load_store_address, success_order, operation_type::rmw)
+    Atomic_Operation(load_store_address, success_order, operation_type::rmw)
 {
   sequence_number seq_no = global_state->get_sequence_number();
   set_sequence_number(seq_no);
@@ -458,11 +458,11 @@ bool RMW::get_return_value()
 
 
 
-FetchOp::FetchOp(location load_store_address, value operand, memory_order success_order, \
+FetchOp::FetchOp(location load_store_address, value operand, operation_order success_order, \
 		thread_id, binary_op bop)
   : bop(bop),
     operand(operand),
-    Operation(load_store_address, success_order, operation_type::rmw)
+    Atomic_Operation(load_store_address, success_order, operation_type::rmw)
 {
   //all fetch operations are successful stores
   is_rmw_store = true;
@@ -508,8 +508,15 @@ void FetchOp::execute()
 
 
 
-Fence::Fence(memory_order fence_order, thread_id tid)
-  : Operation(0, fence_order, operation_type::fence)
+value FetchOp::get_return_value()
+{
+  return return_value;
+}
+
+
+
+Fence::Fence(operation_order fence_order, thread_id tid)
+  : Atomic_Operation(0, fence_order, operation_type::fence)
 {}
 
 
@@ -520,7 +527,7 @@ void Fence::execute()
 
 
 
-ClockVector::ClockVector(Operation *act) : clock_vector(MAX_THREADS, 0)
+ClockVector::ClockVector(Atomic_Operation *act) : clock_vector(MAX_THREADS, 0)
 {
   if (act != NULL)
     clock_vector[act->get_thread()->get_id()] = act->get_sequence_number();
@@ -566,7 +573,7 @@ bool ClockVector::minmerge(ClockVector *cv)
 
 
 
-bool ClockVector::synchronized_since(Operation *act)
+bool ClockVector::synchronized_since(Atomic_Operation *act)
 {
   int tid = act->get_thread()->get_id();
   if (tid < num_threads)

@@ -1,12 +1,11 @@
-#include <atomic>
 #include <vector>
 #include <cstdint>
 
-#include "atomicactions.h"
+#include "operations/atomicactions.h"
 
 #ifndef STATE
 #define STATE
-#include "state.h"
+#include "operations/state.h"
 #endif
 
 GlobalState *global_state = nullptr;
@@ -23,7 +22,7 @@ void atomic_init(location store_address, value init_value = 0, thread_id tid = 0
       initialise_global_state();
     }
   
-  Store *s = new Store(store_address, init_value, std::memory_order_seq_cst , tid);
+  Store *s = new Store(store_address, init_value, operation_order::seq_cst , tid);
   s->execute();
 }
 
@@ -33,7 +32,7 @@ void atomic_init(location store_address, value init_value = 0, thread_id tid = 0
  *
  *
  **/
-value atomic_load(location load_address, memory_order load_order , thread_id tid)
+value atomic_load(location load_address, operation_order load_order , thread_id tid)
 {
   if(global_state == nullptr)
     {
@@ -50,7 +49,7 @@ value atomic_load(location load_address, memory_order load_order , thread_id tid
  *
  *
  **/
-void atomic_store(location store_address, value store_value, memory_order store_order, \
+void atomic_store(location store_address, value store_value, operation_order store_order, \
 		  thread_id tid)
 {
   if(global_state == nullptr)
@@ -68,8 +67,8 @@ void atomic_store(location store_address, value store_value, memory_order store_
  *
  * Ex : atomic_compare_exchange_weak, atomic_compare_exchange_strong
  **/
-value atomic_rmw(location load_store_address, value expected, memory_order success_order, \
-		 value desired,memory_order failure_order, thread_id tid)
+value atomic_rmw(location load_store_address, value expected, operation_order success_order, \
+		 value desired,operation_order failure_order, thread_id tid)
 {
   if(global_state == nullptr)
     {
@@ -90,7 +89,7 @@ value atomic_rmw(location load_store_address, value expected, memory_order succe
  * 
  **/
 value atomic_fetch_add(location load_store_address,value operand,
-		      memory_order success_order,
+		      operation_order success_order,
 		      thread_id tid)
 {
   if(global_state == nullptr)
@@ -112,7 +111,7 @@ value atomic_fetch_add(location load_store_address,value operand,
  *
  **/
 value atomic_fetch_sub(location load_store_address,value operand,
-		      memory_order success_order,
+		      operation_order success_order,
 		      thread_id tid)
 {
   if(global_state == nullptr)
@@ -135,7 +134,7 @@ value atomic_fetch_sub(location load_store_address,value operand,
  *
  **/
 value atomic_fetch_and(location load_store_address,value operand,
-		      memory_order success_order,
+		      operation_order success_order,
 		      thread_id tid)
 {
   if(global_state == nullptr)
@@ -158,7 +157,7 @@ value atomic_fetch_and(location load_store_address,value operand,
  *
  **/
 value atomic_fetch_or(location load_store_address,value operand,
-		      memory_order success_order,
+		      operation_order success_order,
 		      thread_id tid)
 {
   if(global_state == nullptr)
@@ -181,7 +180,7 @@ value atomic_fetch_or(location load_store_address,value operand,
  *
  **/
 value atomic_fetch_xor(location load_store_address,value operand,
-		      memory_order success_order,
+		      operation_order success_order,
 		      thread_id tid)
 {
   if(global_state == nullptr)
@@ -202,7 +201,7 @@ value atomic_fetch_xor(location load_store_address,value operand,
  *
  *
  **/
-void atomic_fence(memory_order fence_order, thread_id tid)
+void atomic_fence(operation_order fence_order, thread_id tid)
 {
   if(global_state == nullptr)
     {

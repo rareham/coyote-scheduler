@@ -14,7 +14,7 @@
 #define MAX_THREADS 10
 
 typedef std::uint64_t value; //@brief value stored at the address
-typedef std::uint64_t location; //@brief the address of the variable
+typedef void * location; //@brief the address of the variable
 typedef std::uint16_t sequence_number; //@brief global sequence number
 typedef std::uint64_t thread_id; //@brief thread id performing atomic operations
 typedef std::memory_order memory_order; //@brief memory order tag for the atomic operation
@@ -28,7 +28,7 @@ void initialise_global_state();
 
 class GlobalState;
 class ThreadState;
-class Operation;
+class Atomic_Operation;
 class Store;
 class Load;
 class RMW;
@@ -63,7 +63,7 @@ public:
  *
  * 
  **/
-class Operation
+class Atomic_Operation
 {
  protected:
   ThreadState *thread_state;
@@ -75,7 +75,7 @@ class Operation
   ClockVector *cv;
 
  public:
-  Operation(location, memory_order, operation_type);  
+  Atomic_Operation(location, operation_order, operation_type);  
 
   void set_sequence_number(sequence_number number)
   {
@@ -119,7 +119,7 @@ class Operation
     return seq_cst;
   }
 
-  bool happens_before(Operation *oper);
+  bool happens_before(Atomic_Operation*);
   
   void create_cv();
 };
@@ -134,11 +134,11 @@ class Operation
 class ClockVector
 {
 public:
-  ClockVector(Operation *);
+  ClockVector(Atomic_Operation*);
   ~ClockVector();
-  bool merge(ClockVector *);
-  bool minmerge(ClockVector *);
-  bool synchronized_since(Operation *);
+  bool merge(ClockVector*);
+  bool minmerge(ClockVector*);
+  bool synchronized_since(Atomic_Operation*);
   logical_clock getClock(thread_id);
   
 private:
@@ -156,21 +156,21 @@ private:
  *
  *
  **/
-class Load : Operation
+class Load : Atomic_Operation
 {
 protected:
   bool is_acquire;
-  std::vector<Operation*> rf_set;
+  std::vector<Atomic_Operation*> rf_set;
   ClockVector *rf_cv;
   value load_value;
 
 public:
-  Load(value, memory_order, thread_id);
+  Load(location, operation_order, thread_id);
   void build_rf_set();
-  std::vector<Operation*> get_rf_set();
+  std::vector<Atomic_Operation*> get_rf_set();
   void* load_latest();
   void create_rf_cv();
-  Operation* choose_random(std::vector<Operation*>);
+  Atomic_Operation* choose_random(std::vector<Atomic_Operation*>);
   void execute();
   void print_rf_set();
   value get_load_value()
@@ -186,16 +186,15 @@ public:
  *
  *
  **/
-class Store : Operation
+class Store : Atomic_Operation
 {
 protected:
   bool is_release;
   value store_value;
 
 public:
-  Store(location, value, memory_order, thread_id);
+  Store(location, value, operation_order, thread_id);
   void execute();
-  void create_cv();
   value get_value()
   {
     return store_value;
@@ -209,18 +208,18 @@ public:
  *
  *
  **/
-class RMW : Operation
+class RMW : Atomic_Operation
 {
 protected:
   bool return_value;
   bool is_rmw_store;
-  memory_order success_mo;
-  memory_order failure_mo;
+  operation_order success_mo;
+  operation_order failure_mo;
   value expected;
   value desired;
   
 public:
-  RMW(location, value, memory_order, value, memory_order, thread_id);
+  RMW(location, value, operation_order, value, operation_order, thread_id);
   void execute();
   bool get_return_value();
   bool is_store()
@@ -236,7 +235,7 @@ public:
  *
  *
  **/
-class FetchOp : Operation
+class FetchOp : Atomic_Operation
 {
 protected:
   binary_op bop;
@@ -245,7 +244,7 @@ protected:
   value operand;
   
 public:
-  FetchOp(location, value, memory_order, thread_id, binary_op);
+  FetchOp(location, value, operation_order, thread_id, binary_op);
   void execute();
   value get_return_value();
 };
@@ -257,21 +256,21 @@ public:
  *
  *
  **/
-class Fence : Operation
+class Fence : Atomic_Operation
 {
 protected:
   
 public:
-  Fence(memory_order, thread_id);
+  Fence(operation_order, thread_id);
   void execute();
 };
 
 
 
 //@brief operations performed by threads
-typedef std::unordered_map<ThreadState*, std::vector<Operation*>> thread_operation_list;
+typedef std::unordered_map<ThreadState*, std::vector<Atomic_Operation*>> thread_operation_list;
 //@brief an operation performed by threads
-typedef std::unordered_map<ThreadState*, Operation*> thread_operation;
+typedef std::unordered_map<ThreadState*, Atomic_Operation*> thread_operation;
 
 
 
@@ -290,7 +289,7 @@ private:
   //@brief mapping the internal thread id with ThreadState
   std::unordered_map<thread_id, ThreadState*> thread_id_obj_map;
   //@brief all the operations performaed at a location
-  std::unordered_map<location, std::vector<Operation*>> obj_str_map;
+  std::unordered_map<location, std::vector<Atomic_Operation*>> obj_str_map;
   //@brief all operations
   std::unordered_map<location, thread_operation_list> obj_thread_oper_map;
   //@brief list of store actions by the thread at a location
@@ -302,13 +301,13 @@ private:
   //@brief last thread operation
   std::unordered_map<location, thread_operation> obj_thread_last_oper_map;
   //@brief the latest sequential store action
-  std::unordered_map<location, Operation*> obj_last_seq_map;
+  std::unordered_map<location, Atomic_Operation*> obj_last_seq_map;
 
-  void record_operation(Operation *);
-  void record_atomic_store(Operation *);
-  void record_atomic_load(Operation *);
-  void record_atomic_rmw(Operation *);
-  void record_atomic_fence(Operation *);
+  void record_operation(Atomic_Operation*);
+  void record_atomic_store(Atomic_Operation*);
+  void record_atomic_load(Atomic_Operation*);
+  void record_atomic_rmw(Atomic_Operation*);
+  void record_atomic_fence(Atomic_Operation*);
 
   void insert_into_map();
   void insert_into_map_map();
@@ -316,17 +315,17 @@ private:
 public:
   GlobalState(sequence_number); 
   sequence_number get_sequence_number();
-  void add_to_map(std::unordered_map<location, thread_operation_list>*, Operation*);
+  void add_to_map(std::unordered_map<location, thread_operation_list>*, Atomic_Operation*);
   thread_id get_thread_id(thread_id tid) {
     return thread_id_map.at(tid);
   }
 
-  void record_atomic_operation(Operation *);
-  void record_thread(Operation*, thread_id);
-  void record_modification_order(Operation *);
+  void record_atomic_operation(Atomic_Operation*);
+  void record_thread(Atomic_Operation*, thread_id);
+  void record_modification_order(Atomic_Operation*);
   std::int16_t get_num_of_threads();
-  Operation* get_last_store(location);
-  Operation* get_last_seq_cst_store(location);
+  Atomic_Operation* get_last_store(location);
+  Atomic_Operation* get_last_seq_cst_store(location);
   thread_operation_list get_thread_stores(location loc)
   {
     return obj_thread_str_map.at(loc);
