@@ -2,37 +2,64 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <cstdio>
 #include <iterator>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#ifdef ATOMIC_DEBUG_MODEL
+#include <iostream>
+#endif
 
-#include "operations/state.h"
+#include "scheduler.h"
+#include "operations/atomicstate.h"
 
 
-void initialise_global_state()
+/**
+ *
+ * @brief initialise state before each iteration
+ * 
+ **/
+void initialise_global_state(coyote::Scheduler *scheduler)
 {
 
-  assert(!global_state && "initialise_global_state : Global state already initialised");
+  //assert(global_state && "initialise_global_state : Global state already initialised");
   #ifdef ATOMIC_DEBUG_MODEL
   printf("initialise_global_state : Global State Initialised with " \
 	 "sequence_number : %d \n", START_SEQ_NO);
   #endif
   
-  global_state = new GlobalState(START_SEQ_NO);
+  global_state = new GlobalState(START_SEQ_NO, scheduler);
 }
 
 
 
-GlobalState::GlobalState(sequence_number start_seq_no) : seq_no(start_seq_no)
+/**
+ *
+ * @brief clear state after each test iteration
+ *
+ **/
+void reinitialise_global_state()
+{
+  #ifdef ATOMIC_DEBUG_MODEL
+  printf("reinitialise_global_state : Global State Initialised with " \
+	 "sequence_number : %d \n", START_SEQ_NO);
+  #endif
+  global_state->clear_state();
+  global_state->initialise_sequence_number(START_SEQ_NO);
+}
+
+
+
+GlobalState::GlobalState(sequence_number start_seq_no, coyote::Scheduler *scheduler)
+  : seq_no(start_seq_no),
+    scheduler(scheduler)
 {}
 
 
 
 sequence_number GlobalState::get_sequence_number()
 {
-  return seq_no++;
+  return ++seq_no;
 }
 
 
@@ -112,11 +139,15 @@ void GlobalState::record_thread(Atomic_Operation *oper, thread_id thrd_id)
   } else {//existing thread state
     thrd_state = thread_id_obj_map[thread_id_map[thrd_id]];
   }
+
+  assert(thrd_state);
+  
   oper->set_thread(thrd_state);
 
+  print_thread_map();
+  
   //last thread operation
-  thread_operation inner_map =	\
-    obj_thread_last_oper_map[oper->get_operation_location()];
+  thread_operation inner_map = obj_thread_last_oper_map[oper->get_operation_location()];
   inner_map[thrd_state] = oper;
 }
 
@@ -126,7 +157,16 @@ void GlobalState::record_atomic_store(Atomic_Operation *oper)
 {
   location loc = oper->get_operation_location();
   thread_operation_list inner_map = obj_thread_str_map[loc];
+  
   inner_map[oper->get_thread()].push_back(oper);
+  obj_thread_str_map[loc] = inner_map;
+
+  #ifdef ATOMIC_MODEL_DEBUG
+  std::cout << "GlobalState::record_atomic_store map size : "
+	    << inner_map.size()) << std::endl;
+  #endif
+
+  assert(inner_map.size() != 0);
 
   //record the seq_cst store
   if (oper->is_seq_cst()) {
@@ -159,6 +199,7 @@ void GlobalState::record_modification_order(Atomic_Operation *oper)
   thread_operation_list inner_map = obj_thread_str_map[loc];
   inner_map[oper->get_thread()].push_back(oper);
 }
+
 
 
 void GlobalState::record_atomic_fence(Atomic_Operation *oper)
@@ -211,6 +252,70 @@ Atomic_Operation* GlobalState::get_last_seq_cst_store(location loc)
 
 
 
+/**
+ *
+ * @brief prints the stores per location per thread 
+ **/
+void GlobalState::print_thread_stores()
+{
+  #ifdef ATOMIC_DEBUG_MODEL
+  obj_thread_operation_map::iterator outer_it = obj_thread_str_map.begin();
+  for (auto i = outer_it; i != obj_thread_str_map.end(); i++)
+    {
+      std::cout << "GlobalState::print_thread_stores : Location : "
+		<< i->first << std::endl;
+
+      thread_operation_list ::iterator inner_it = outer_it->second.begin();
+
+      std::cout << "GlobalState::print_thread_stores inner_map_len : "
+		<< outer_it->second.size() << std::endl;
+
+      for(auto j = inner_it; j != outer_it->second.end(); j++ )
+	{
+	  std::cout << "GlobalState::print_thread_stores : thread : "
+		    << j->first->get_id() << std::endl;
+
+	  std::cout << "GlobalState::print_thread_stores : number of stores : "
+		    << j->second.size() << std::endl;
+
+	  for(auto k = j->second.begin(); k != j->second.end(); k++)
+	    {
+	      std::cout << "GlobalState::print_thread_stores : store_seq_no: "
+			<< (*k)->get_sequence_number() << std::endl;
+	    }
+	}
+    }
+  #endif
+}
+
+
+
+void GlobalState::print_thread_map()
+{
+  #ifdef ATOMIC_DEBUG_MODEL
+  std::unordered_map<thread_id, ThreadState*>::iterator tmap_it =
+    thread_id_obj_map.begin();
+  for (auto i = tmap_it; i != thread_id_obj_map.end(); i++)
+    {
+      std::cout << "GlobalState::print_thread_map : ext_tid : "
+		<< i->first << " int_tid : " << i->second->get_id() << std::endl;
+    }
+  #endif
+}
+
+void GlobalState::clear_state()
+{
+    thread_id_map.clear();
+    thread_id_obj_map.clear();
+    obj_str_map.clear();
+    obj_thread_oper_map.clear();
+    obj_thread_str_map.clear();
+    obj_thread_ld_map.clear();
+    obj_thread_rmw_map.clear();
+    obj_thread_last_oper_map.clear();
+    obj_last_seq_map.clear();
+}
+
 
 ThreadState::ThreadState(thread_id thrd_id)
   : thrd_id(thrd_id)
@@ -245,11 +350,6 @@ void Atomic_Operation::create_cv()
 Load::Load(location load_address, operation_order load_order, thread_id tid)
   : Atomic_Operation(load_address, load_order, operation_type::load)
 {
-  #ifdef ATOMIC_MODEL_DEBUG
-    printf("Load::Load : Loading from the atomic location : %x \n with order, \
-    value and  tid : %ul %ul\n",load_address, load_order, tid);
-  #endif
-
   assert(load_address && "Load::Load : load_address is NULL");
 
   sequence_number seq_no = global_state->get_sequence_number();
@@ -266,20 +366,26 @@ Load::Load(location load_address, operation_order load_order, thread_id tid)
  **/
 void Load::execute()
 {
+  #ifdef ATOMIC_DEBUG_MODEL
+  std::cout << "Executing Load.." << std::endl;
+  #endif
   global_state->record_atomic_operation(this);
   build_rf_set();
   Store *rf_store = (Store*)choose_random(get_rf_set());
   load_value = rf_store->get_value();
+  Load::print_rf_set();
 }
 
 
 
 /**
- * // TODO: Associate the scheduler randomness.
+ * @brief chooses the read from value based on scheduler strategy
+ *
  **/
-Atomic_Operation* Load::choose_random(std::vector<Atomic_Operation*> rf_set)
+Atomic_Operation* Load::choose_random(std::vector<Atomic_Operation*> &rf_set)
 {
-  return rf_set[0];
+  int iter_int = global_state->get_next_integer(rf_set.size());
+  return rf_set[iter_int];
 }
 
 
@@ -307,7 +413,7 @@ void Load::build_rf_set()
   while (thread_iter != inner_map.end())
     {
       std::vector<Atomic_Operation*> store_opers = thread_iter->second;
-      //for each action by the thread, from latest to earliest
+      //for each operation by the thread, from latest to earliest
       std::vector<Atomic_Operation*>::reverse_iterator store_iter = store_opers.rbegin(); 
       while (store_iter != store_opers.rend())
 	{
@@ -345,7 +451,7 @@ void Load::create_rf_cv()
 
 
 
-std::vector<Atomic_Operation*> Load::get_rf_set()
+std::vector<Atomic_Operation*>& Load::get_rf_set()
 {
   return rf_set;
 }
@@ -354,13 +460,15 @@ std::vector<Atomic_Operation*> Load::get_rf_set()
 
 void Load::print_rf_set()
 {
-  std::vector<Atomic_Operation*>::iterator rf_set_iter = rf_set.begin();
   #ifdef ATOMIC_DEBUG_MODEL
+  std::vector<Atomic_Operation*>::iterator rf_set_iter = rf_set.begin();
   while (rf_set_iter != rf_set.end())
     {
       Store *rf_store = (Store*)*rf_set_iter;
-      printf("Load::print_rf_set : location = %p , value = %ld"	\
-	     ,(*rf_set_iter)->get_operation_location(), rf_store->get_value());
+      std::cout << "Load::print_rf_set : location "
+		<< (*rf_set_iter)->get_operation_location()
+		<< " value = " << rf_store->get_value() << std::endl;
+      rf_set_iter++;
     }
   #endif
 }
@@ -527,10 +635,10 @@ void Fence::execute()
 
 
 
-ClockVector::ClockVector(Atomic_Operation *act) : clock_vector(MAX_THREADS, 0)
+ClockVector::ClockVector(Atomic_Operation *oper) : clock_vector(MAX_THREADS, 0)
 {
-  if (act != NULL)
-    clock_vector[act->get_thread()->get_id()] = act->get_sequence_number();
+  if (oper != NULL)
+    clock_vector[oper->get_thread()->get_id()] = oper->get_sequence_number();
 }
 
 
@@ -573,11 +681,11 @@ bool ClockVector::minmerge(ClockVector *cv)
 
 
 
-bool ClockVector::synchronized_since(Atomic_Operation *act)
+bool ClockVector::synchronized_since(Atomic_Operation *oper)
 {
-  int tid = act->get_thread()->get_id();
+  int tid = oper->get_thread()->get_id();
   if (tid < num_threads)
-    return act->get_sequence_number() <= clock_vector[tid];
+    return oper->get_sequence_number() <= clock_vector[tid];
   return false;
 }
 

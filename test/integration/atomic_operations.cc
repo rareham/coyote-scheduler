@@ -1,10 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#include <iostream>
+#include <iterator>
 #include <thread>
 
 #include "test.h"
-#include "coyote/operations/atomicactions.h"
+#include "coyote/operations/atomicoperations.h"
+
 
 using namespace coyote;
 
@@ -13,6 +16,11 @@ auto WORK_THREAD_1_ID = 2;
 auto WORK_THREAD_2_ID = 3;
 auto LOCK_ID = 1;
 
+#ifdef COYOTE_DEBUG_LOG
+#undef COYOTE_DEBUG_LOG
+#endif
+
+
 std::atomic<int> x;
 std::atomic<int> y;
 Scheduler* scheduler;
@@ -20,8 +28,8 @@ Scheduler* scheduler;
 void work_1()
 {
 	scheduler->start_operation(WORK_THREAD_1_ID);
-	atomic_store(&x, 1, operation_order::relaxed, WORK_THREAD_1_ID);
-	atomic_store(&y, 2, operation_order::relaxed, WORK_THREAD_1_ID);
+	atomic_store(WORK_THREAD_1_ID, 1, &x, operation_order::relaxed);
+	atomic_store(WORK_THREAD_1_ID, 2, &y, operation_order::relaxed);
 	scheduler->schedule_next();
 	scheduler->complete_operation(WORK_THREAD_1_ID);
 }
@@ -29,9 +37,11 @@ void work_1()
 void work_2()
 {
 	scheduler->start_operation(WORK_THREAD_2_ID);
-	atomic_load(&x, operation_order::relaxed, WORK_THREAD_2_ID);
+	int loadx = atomic_load(WORK_THREAD_2_ID, &x, operation_order::relaxed);
+	std::cout << "work_2 :: loadx : " << loadx << std::endl;
 	scheduler->schedule_next();
-	atomic_load(&y, operation_order::relaxed, WORK_THREAD_2_ID);
+	int loady = atomic_load(WORK_THREAD_2_ID, &y, operation_order::relaxed);
+	std::cout << "work_2 :: loady : " << loady << std::endl;
 	scheduler->schedule_next();
 	scheduler->complete_operation(WORK_THREAD_2_ID);
 }
@@ -65,18 +75,24 @@ int main()
 	{
 		scheduler = new Scheduler();
 
+		initialise_global_state(scheduler);
+
 		for (int i = 0; i < 100; i++)
 		{
-		  atomic_init(&x, 0, 1);
-		  atomic_init(&y, 0, 1);
+
+		  atomic_init(1, 0, &x);
+		  atomic_init(1, 0, &y);
 		  
 #ifdef COYOTE_DEBUG_LOG
 			std::cout << "[test] iteration " << i << std::endl;
 #endif // COYOTE_DEBUG_LOG
 			run_iteration();
+			reinitialise_global_state();
 		}
-
+		// TODO: dont manage global_state here
+		delete global_state;
 		delete scheduler;
+
 	}
 	catch (std::string error)
 	{

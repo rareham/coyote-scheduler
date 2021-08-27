@@ -3,9 +3,10 @@
 #include <unordered_map>
 #include <vector>
 
+#include "../scheduler.h"
 
 //@brief set to view debug statements for model functions
-#define ATOMIC_DEBUG_MODEL 0
+//#define ATOMIC_DEBUG_MODEL
 
 //@brief start of the global sequence number
 #define START_SEQ_NO 0
@@ -13,18 +14,6 @@
 // TODO: Preventing vector resize
 #define MAX_THREADS 10
 
-typedef std::uint64_t value; //@brief value stored at the address
-typedef void * location; //@brief the address of the variable
-typedef std::uint16_t sequence_number; //@brief global sequence number
-typedef std::uint64_t thread_id; //@brief thread id performing atomic operations
-typedef std::memory_order memory_order; //@brief memory order tag for the atomic operation
-typedef std::uint16_t logical_clock; //@brief logical clock for the vector clocks
-
-enum operation_type {load, store, rmw, fence};
-enum operation_order {relaxed, consume, acquire, release, acq_rel, seq_cst};
-enum binary_op {add_op, sub_op, and_op, or_op, xor_op};
-
-void initialise_global_state();
 
 class GlobalState;
 class ThreadState;
@@ -35,6 +24,25 @@ class RMW;
 class FetchOp;
 class Fence;
 class ClockVector;
+
+typedef std::uint64_t value; //@brief value stored at the address
+typedef void * location; //@brief the address of the variable
+typedef std::uint16_t sequence_number; //@brief global sequence number
+typedef std::uint64_t thread_id; //@brief thread id performing atomic operations
+typedef std::memory_order memory_order; //@brief memory order tag for the atomic operation
+typedef std::uint16_t logical_clock; //@brief logical clock for the vector clocks
+typedef std::unordered_map<ThreadState*, std::vector<Atomic_Operation*>> \
+thread_operation_list; //@brief operations performed by threads
+typedef std::unordered_map<ThreadState*, Atomic_Operation*> \
+thread_operation;//@brief an operation performed by threads
+typedef std::unordered_map<location, thread_operation_list> obj_thread_operation_map;
+
+enum operation_type {load, store, rmw, fence};
+enum operation_order {relaxed, consume, acquire, release, acq_rel, seq_cst};
+enum binary_op {add_op, sub_op, and_op, or_op, xor_op};
+
+void initialise_global_state(coyote::Scheduler *);
+void reinitialise_global_state();
 
 /**
  * @brief models the thread
@@ -114,7 +122,8 @@ class Atomic_Operation
     return thread_state;
   }
   
-  bool is_seq_cst() {
+  bool is_seq_cst()
+  {
     seq_cst = (oper_order == operation_order::seq_cst) ? true:false;
     return seq_cst;
   }
@@ -167,10 +176,10 @@ protected:
 public:
   Load(location, operation_order, thread_id);
   void build_rf_set();
-  std::vector<Atomic_Operation*> get_rf_set();
+  std::vector<Atomic_Operation*>& get_rf_set();
   void* load_latest();
   void create_rf_cv();
-  Atomic_Operation* choose_random(std::vector<Atomic_Operation*>);
+  Atomic_Operation* choose_random(std::vector<Atomic_Operation*>&);
   void execute();
   void print_rf_set();
   value get_load_value()
@@ -267,13 +276,6 @@ public:
 
 
 
-//@brief operations performed by threads
-typedef std::unordered_map<ThreadState*, std::vector<Atomic_Operation*>> thread_operation_list;
-//@brief an operation performed by threads
-typedef std::unordered_map<ThreadState*, Atomic_Operation*> thread_operation;
-
-
-
 /**
  * @brief Models atomic operations for an execution trace
  *
@@ -284,6 +286,8 @@ class GlobalState
 private:
   sequence_number seq_no;
 
+  coyote::Scheduler *scheduler;
+  
   //@brief mapping the thread id with internal id
   std::unordered_map<thread_id, thread_id> thread_id_map;
   //@brief mapping the internal thread id with ThreadState
@@ -291,13 +295,13 @@ private:
   //@brief all the operations performaed at a location
   std::unordered_map<location, std::vector<Atomic_Operation*>> obj_str_map;
   //@brief all operations
-  std::unordered_map<location, thread_operation_list> obj_thread_oper_map;
+  obj_thread_operation_map obj_thread_oper_map;
   //@brief list of store actions by the thread at a location
-  std::unordered_map<location, thread_operation_list> obj_thread_str_map; 
+  obj_thread_operation_map obj_thread_str_map; 
   //@brief list of load actions by the thread at a location
-  std::unordered_map<location, thread_operation_list> obj_thread_ld_map;
+  obj_thread_operation_map obj_thread_ld_map;
   //@brief list of load actions by the thread at a location
-  std::unordered_map<location, thread_operation_list> obj_thread_rmw_map;
+  obj_thread_operation_map obj_thread_rmw_map;
   //@brief last thread operation
   std::unordered_map<location, thread_operation> obj_thread_last_oper_map;
   //@brief the latest sequential store action
@@ -313,23 +317,41 @@ private:
   void insert_into_map_map();
 
 public:
-  GlobalState(sequence_number); 
+  GlobalState(sequence_number, coyote::Scheduler*);
+
+  void initialise_sequence_number(sequence_number global_seq_number)
+  {
+    seq_no = global_seq_number;
+  }
+  
   sequence_number get_sequence_number();
-  void add_to_map(std::unordered_map<location, thread_operation_list>*, Atomic_Operation*);
-  thread_id get_thread_id(thread_id tid) {
+
+  thread_id get_thread_id(thread_id tid)
+  {
     return thread_id_map.at(tid);
   }
 
-  void record_atomic_operation(Atomic_Operation*);
-  void record_thread(Atomic_Operation*, thread_id);
-  void record_modification_order(Atomic_Operation*);
+  int get_next_integer(int max)
+  {
+    return scheduler->next_integer(max);
+  }
+  
   std::int16_t get_num_of_threads();
   Atomic_Operation* get_last_store(location);
   Atomic_Operation* get_last_seq_cst_store(location);
+  void record_atomic_operation(Atomic_Operation*);
+  void record_thread(Atomic_Operation*, thread_id);
+  void record_modification_order(Atomic_Operation*);
+
   thread_operation_list get_thread_stores(location loc)
   {
     return obj_thread_str_map.at(loc);
   }
+  void print_modification_order();
+  void print_thread_stores();
+  void print_thread_map();
+
+  void clear_state();
 };
 
 extern GlobalState *global_state;
