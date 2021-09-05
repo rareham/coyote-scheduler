@@ -1,6 +1,6 @@
 ﻿include_directories("../include/coyote")
 
-set(src_files "ffi.cc" "atomicstate.cc" "atomicoperations.cc")
+set(src_files "ffi.cc")
 
 add_library(coyote SHARED ${src_files})
 set_target_properties(coyote PROPERTIES
