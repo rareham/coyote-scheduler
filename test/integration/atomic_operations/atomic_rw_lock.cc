@@ -1,14 +1,14 @@
 #include <iostream>
 #include <thread>
-//#include <atomic>
 
 #include "test.h"
-#include "coyote/operations/atomicoperations.h"
+#include "coyote/atomicoperations/atomicoperations.h"
 
 #define ASSUME_LOOP 15
-#define THREAD_COUNT 2
-
+#define THREAD_COUNT 1
 #define SEMAPHORE_ID 1
+
+bool assert_failed = false;
 
 atomic<int> w ;
 atomic<int> r ;
@@ -19,18 +19,19 @@ atomic<int> flagr ;
 
 Scheduler* scheduler;
 
-// TODO: delete commented atomic statements
+using namespace coyote;
+
 int atomic_take_write_lock() {
   int ok = 0;
-  scheduler->schedule_next();
-  flagw.store(1, operation_order::seq_cst);
-  if(flagw.load(operation_order::relaxed)) {
-    scheduler->schedule_next();
-    if(!flagr.load(operation_order::acquire)) {
-      scheduler->schedule_next();
+  
+  flagw.store(1, std::memory_order_seq_cst);
+  if(flagw.load(std::memory_order_relaxed)) {
+    
+    if(!flagr.load(std::memory_order_acquire)) {
+      
       for (int k = 0; k < ASSUME_LOOP; k++) {
-	if (w.load(operation_order::acquire) == 0 && r.load(operation_order::acquire) == 0){
-	  scheduler->schedule_next();
+	if (w.load(std::memory_order_acquire) == 0 && r.load(std::memory_order_acquire) == 0){
+	  
 	  ok = 1;
 	  break;
 	}
@@ -38,22 +39,22 @@ int atomic_take_write_lock() {
     }
   }
   if (ok == 0) return 0;
-  w.store(1, operation_order::relaxed);
-  flagw.store(0, operation_order::release);
+  w.store(1, std::memory_order_relaxed);
+  flagw.store(0, std::memory_order_release);
   return 1;
 }
 
 int atomic_take_read_lock() {
-  scheduler->schedule_next();
+  
   int ok = 0;
-  flagr.store(1, operation_order::seq_cst);
-  if (flagr.load(operation_order::relaxed)) {
-    scheduler->schedule_next();
-    if (! flagw.load(operation_order::acquire)) {
-      scheduler->schedule_next();
+  flagr.store(1, std::memory_order_seq_cst);
+  if (flagr.load(std::memory_order_relaxed)) {
+    
+    if (! flagw.load(std::memory_order_acquire)) {
+      
       for (int k = 0; k < ASSUME_LOOP; k++){
-	if (w.load(operation_order::acquire) == 0){
-	  scheduler->schedule_next();
+	if (w.load(std::memory_order_acquire) == 0){
+	  
 	  ok = 1;
 	  break;
 	}
@@ -61,23 +62,23 @@ int atomic_take_read_lock() {
     }
   }
   if (ok == 0) return 0;
-  atomic_fetch_add_explicit(&r, 1, operation_order::acq_rel);
-  scheduler->schedule_next();
-  flagr.store(0, operation_order::release);
+  atomic_fetch_add_explicit(&r, 1, std::memory_order_acq_rel);
+  
+  flagr.store(0, std::memory_order_release);
   return 1;
 }
 
 void atomic_release_read_lock() {
-  atomic_fetch_sub_explicit(&r, 1, operation_order::acq_rel);
-  scheduler->schedule_next();
+  atomic_fetch_sub_explicit(&r, 1, std::memory_order_acq_rel);
+  
 }
 
 static void writer(int id) {
   scheduler->start_operation(id);
-  scheduler->schedule_next();
+  
   if(atomic_take_write_lock()) {
-    x.store(3, operation_order::relaxed);
-    w.store(0, operation_order::relaxed);
+    x.store(3, std::memory_order_relaxed);
+    w.store(0, std::memory_order_relaxed);
   }
   scheduler->complete_operation(id);
 }
@@ -86,16 +87,20 @@ static void writer(int id) {
 static void reader(int id) {
   int l;
   scheduler->start_operation(id);
-  scheduler->schedule_next();
+  
   if (atomic_take_read_lock()) {
-    l = x.load(operation_order::relaxed);
-    scheduler->schedule_next();
-    y.store(l, operation_order::relaxed);
-    int temp1 = x.load(operation_order::relaxed);
-    scheduler->schedule_next();
-    int temp2 = y.load(operation_order::relaxed);
-    scheduler->schedule_next();
-    assert((temp1 == temp2) , "reader : synchronisation unaccomplished");
+    l = x.load(std::memory_order_relaxed);
+    
+    y.store(l, std::memory_order_relaxed);
+    int temp1 = x.load(std::memory_order_relaxed);
+    
+    int temp2 = y.load(std::memory_order_relaxed);
+    
+    if(!(temp1 == temp2))
+      {
+	assert_failed = true;
+      }
+    
     atomic_release_read_lock();
   }
   scheduler->complete_operation(id);
@@ -126,7 +131,7 @@ void run_iteration()
       write_ts[i].join();
     }
   
-  scheduler->join_operation(THREAD_COUNT);
+  scheduler->join_operation(THREAD_COUNT + 1);
   read_t.join();
 
   scheduler->detach();
@@ -158,7 +163,10 @@ int main()
 #ifdef COYOTE_DEBUG_LOG
 	  std::cout << "[test] iteration " << i << std::endl;
 #endif // COYOTE_DEBUG_LOG
+
 	  run_iteration();
+
+	  ASSERT_CHECK
 	  reinitialise_global_state();
 	}
       

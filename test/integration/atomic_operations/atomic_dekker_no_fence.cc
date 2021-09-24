@@ -1,9 +1,8 @@
 #include <iostream>
-//#include <atomic>
 #include <thread>
 
 #include "test.h"
-#include "coyote/operations/atomicoperations.h"
+#include "coyote/atomicoperations/atomicoperations.h"
 
 #define ROUND 15
 
@@ -12,6 +11,7 @@ using namespace coyote;
 constexpr auto WORK_THREAD_1_ID = 2;
 constexpr auto WORK_THREAD_2_ID = 3;
 
+bool assert_failed = false;
 
 atomic<int> flag1;
 atomic<int> flag2;
@@ -25,27 +25,31 @@ Scheduler* scheduler;
 static void t1() {
   int ok1, ok2;
   scheduler->start_operation(WORK_THREAD_1_ID);
-  flag1.store(1, operation_order::seq_cst);
+  flag1.store(1, std::memory_order_seq_cst);
   ok1 = 0;
   for (int i = 0; i < LOOP; i++) {
-    if (flag1.load(operation_order::acquire)) {
-      scheduler->schedule_next();
-      if (flag2.load(operation_order::acquire)) {
-	scheduler->schedule_next();
-	if(turn.load(operation_order::relaxed) != 0) {
-	  scheduler->schedule_next();
-	  flag1.store(0, operation_order::seq_cst);
+    if (flag1.load(std::memory_order_acquire)) {
+      
+      if (flag2.load(std::memory_order_acquire)) {
+	
+	if(turn.load(std::memory_order_relaxed) != 0) {
+	  
+	  flag1.store(0, std::memory_order_seq_cst);
 	  ok2 = 0;
 	  for(int j = 0; j < LOOP; j++)
 	    {
-	      if (turn.load(operation_order::relaxed) == 0) {
-		scheduler->schedule_next();
+	      if (turn.load(std::memory_order_relaxed) == 0) {
+		
 		ok2 = 1;
 		break;
 	      };
 	    }
-	  if (ok2 == 0) return;
-	  flag1.store(1, operation_order::seq_cst);
+	  if (ok2 == 0)
+	    {
+	      scheduler->complete_operation(WORK_THREAD_1_ID);
+	      return;
+	    }
+	  flag1.store(1, std::memory_order_seq_cst);
 	}
       }
       else {
@@ -54,59 +58,84 @@ static void t1() {
       }
     }
   }
-  if (ok1 == 0) return;
+  if (ok1 == 0)
+    {
+      scheduler->complete_operation(WORK_THREAD_1_ID);
+      return;
+    }
 
   // begin: critical section
-  x.store(1, operation_order::relaxed);
-  assert(x.load(operation_order::relaxed) == 1, "synchronisation failed");
+  x.store(1, std::memory_order_relaxed);
+  int loadx = x.load(std::memory_order_relaxed);
+  if(!(loadx == 1))
+    {
+      assert_failed = true;
+    }
   // end: critical section
-  turn.store(1, operation_order::release);
-  flag1.store(0, operation_order::seq_cst);
+  turn.store(1, std::memory_order_release);
+  flag1.store(0, std::memory_order_seq_cst);
   scheduler->complete_operation(WORK_THREAD_1_ID);
 }
 
 static void t2() {
   int ok1, ok2;
   scheduler->start_operation(WORK_THREAD_2_ID);
-  flag2.store(1, operation_order::seq_cst);
+  flag2.store(1, std::memory_order_seq_cst);
   
   ok1 = 0;
-  for (int i = 0; i < LOOP; i++) {
-    if (flag2.load(operation_order::acquire)) {
-      scheduler->schedule_next();
-      if (flag1.load(operation_order::acquire)) {
-	scheduler->schedule_next();
-	if( turn.load(operation_order::relaxed) != 1) {
-	  scheduler->schedule_next();
-	  flag2.store(0, operation_order::seq_cst);
-	  ok2 = 0;
-	  for(int j = 0; j < LOOP; j++)
+  for (int i = 0; i < LOOP; i++)
+    {
+      if (flag2.load(std::memory_order_acquire))
+	{
+	  
+	  if (flag1.load(std::memory_order_acquire))
 	    {
-	      if (turn.load(operation_order::relaxed) == 1) {
-		scheduler->schedule_next();
-		ok2 = 1;
-		break;
-	      };
+	      
+	      if( turn.load(std::memory_order_relaxed) != 1)
+		{
+		  
+		  flag2.store(0, std::memory_order_seq_cst);
+		  ok2 = 0;
+		  for(int j = 0; j < LOOP; j++)
+		    {
+		      if (turn.load(std::memory_order_relaxed) == 1)
+			{
+			  
+			  ok2 = 1;
+			  break;
+			};
+		    }
+		  if (ok2 == 0)
+		    {
+		      scheduler->complete_operation(WORK_THREAD_2_ID);
+		      return;
+		    }
+		  flag2.store(1, std::memory_order_seq_cst);
+		}
 	    }
-	  if (ok2 == 0) return;
-	  flag2.store(1, operation_order::seq_cst);
+	  else
+	    {
+	      ok1 = 1;
+	      break;
+	    }
 	}
-            }
-      else {
-	ok1 = 1;
-	break;
-      }
     }
-  }
-  if (ok1 == 0) return;
+  if (ok1 == 0)
+    {
+      scheduler->complete_operation(WORK_THREAD_2_ID);
+      return;
+    }
   
   // begin: critical section
-  x.store(2, operation_order::relaxed);
-  assert(x.load(operation_order::relaxed) == 2, "synchronisation failed");
-  scheduler->schedule_next();
+  x.store(2, std::memory_order_relaxed);
+  int loadx = x.load(std::memory_order_relaxed);
+  if(!(loadx == 2))
+    {
+      assert_failed = true;
+    }
   // end: critical section
-  turn.store(0, operation_order::release);
-  flag2.store(0, operation_order::seq_cst);
+  turn.store(0, std::memory_order_release);
+  flag2.store(0, std::memory_order_seq_cst);
   scheduler->complete_operation(WORK_THREAD_2_ID);
 }
 
@@ -114,7 +143,6 @@ static void t2() {
 void run_iteration()
 {
   scheduler->attach();
-
     
   scheduler->create_operation(WORK_THREAD_1_ID);
   std::thread th1(t1);
@@ -159,7 +187,10 @@ int main()
 	  std::cout << "[test] iteration " << i << std::endl;
 #endif // COYOTE_DEBUG_LOG
 	  run_iteration();
-            reinitialise_global_state();
+	  
+	  ASSERT_CHECK
+	    
+	  reinitialise_global_state();
         }
       
       delete global_state;
