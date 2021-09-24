@@ -121,7 +121,7 @@ int main(int argc, char **argv)
 
 	  run_iteration();
 
-	  ASSERT_CHECK
+	  ASSERT_FAIL_CHECK
 	  reinitialise_global_state();
 	}
       delete global_state;

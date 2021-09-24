@@ -166,7 +166,7 @@ int main()
 
 	  run_iteration();
 
-	  ASSERT_CHECK
+	  ASSERT_PASS_CHECK
 	  reinitialise_global_state();
 	}
       

@@ -65,7 +65,7 @@ static void fn1()
   // begin: critical section
     x.store(0,std::memory_order_relaxed);
     int tempx = x.load(std::memory_order_relaxed);
-    if ((tempx == 0))
+    if (!(tempx == 0))
       {
 	assert_failed = true;
       }
@@ -118,7 +118,7 @@ static void fn2()
   // begin: critical section
   x.store(1, std::memory_order_relaxed);
   int tempx = x.load(std::memory_order_relaxed);
-  if ((tempx == 1))
+  if (!(tempx == 1))
     {
       assert_failed = true;
     }
@@ -170,7 +170,7 @@ int main(int argc, char **argv)
 	  atomic_init(&fenc, 0);
 	  
 	  run_iteration();
-	  ASSERT_CHECK
+	  ASSERT_PASS_CHECK
 	  reinitialise_global_state();
 	}
       delete global_state;

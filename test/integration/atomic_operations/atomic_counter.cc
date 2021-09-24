@@ -133,12 +133,12 @@ int main(int argc, char **argv)
 	  
       	  run_iteration();
 
-	  if ((a > 0 && b == ROUND && c < ROUND&& d == 0))
+	  if ((a > 0 && b == ROUND && c < ROUND && d == 0))
 	    {
 	      assert_failed = true;
 	    }
 	  
-	  ASSERT_CHECK
+	  ASSERT_FAIL_CHECK
 	  reinitialise_global_state();
 	}
       delete global_state;

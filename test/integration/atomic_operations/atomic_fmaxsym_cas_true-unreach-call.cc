@@ -92,7 +92,7 @@ int main(int argc, char **argv)
 	  atomic_init(&max_num, 0);
 	  run_iteration();
 
-	  ASSERT_CHECK
+	  ASSERT_PASS_CHECK
 	  reinitialise_global_state();
 	}
       delete global_state;

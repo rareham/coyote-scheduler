@@ -92,7 +92,7 @@ int main(int argc, char **argv)
 	  run_iteration();
 	  reinitialise_global_state();
 
-	  ASSERT_CHECK
+	  ASSERT_PASS_CHECK
 	}
       delete global_state;
       delete scheduler;

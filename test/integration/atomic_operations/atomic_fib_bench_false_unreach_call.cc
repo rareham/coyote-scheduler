@@ -81,13 +81,13 @@ int main(int argc, char **argv)
 
 	  run_iteration();
 	  
-	  if (!(i.load(std::memory_order_relaxed) >= 144
+	  if ((i.load(std::memory_order_relaxed) >= 144
 		|| j.load(std::memory_order_relaxed) >= 144))
 	    {
 	      assert_failed = true;
 	    }
 	  
-	  ASSERT_CHECK
+	  ASSERT_PASS_CHECK
 	  reinitialise_global_state();
 	}
       delete global_state;

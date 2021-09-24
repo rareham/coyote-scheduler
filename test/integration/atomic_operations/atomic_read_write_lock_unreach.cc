@@ -170,7 +170,7 @@ int main()
           #endif // COYOTE_DEBUG_LOG
 	  
 	  run_iteration();
-	  ASSERT_CHECK
+	  ASSERT_FAIL_CHECK
 	  reinitialise_global_state();
 	}
 
