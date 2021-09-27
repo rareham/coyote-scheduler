@@ -17,16 +17,21 @@
 #pragma once
 
 #include <iostream>
-#include <ostream>
-namespace std
-{
-  typedef enum operation_order
-    {
-     relaxed, consume, acquire,
-     release, acq_rel, seq_cst
+#include <vector>
+
+namespace std {
+    typedef enum operation_order {
+        relaxed,
+        consume,
+        acquire,
+        release,
+        acq_rel,
+        seq_cst
     } operation_order;
 
 }
+
+std::vector<std::string> operation_order_str = {"relaxed", "consume", "acquire", "release", "acq_rel", "seq_cst"};
 
 // to replace the std::memory_order_* usages
 typedef std::operation_order operation_order;
@@ -38,7 +43,7 @@ operation_order release = operation_order::release;
 operation_order acq_rel = operation_order::acq_rel;
 operation_order seq_cst = operation_order::seq_cst;
 
-  
+
 #define memory_order_seq_cst seq_cst
 #define memory_order_acquire acquire
 #define memory_order_release release
@@ -48,67 +53,65 @@ operation_order seq_cst = operation_order::seq_cst;
 
 #define memory_order operation_order
 
-template< typename T >
+template<typename T>
 class atomic
 
 {
 public:
-  atomic()
-  {}
-  
-  explicit atomic( T store_value )
-  {
-    atomic_store(this, store_value, memory_order_relaxed);
-  }
-  
-  atomic( const atomic& ) = delete;
-  atomic& operator =( const atomic& ) = delete;
+    atomic() {}
 
-  void store( T store_value,  std::operation_order store_order ) ;
+    explicit atomic(T store_value) {
+        atomic_store(this, store_value, memory_order_relaxed);
+    }
 
-  T load( std::operation_order oper_order ) ;
-  
-  T exchange( T exchange, std::operation_order oper_order) ;
+    atomic(const atomic &) = delete;
+    atomic &operator=(const atomic &) = delete;
 
-  T exchange( T exchange );
-  
-  bool compare_exchange_weak( T expected, T desired,
-			      std::operation_order success_order,
-			     std::operation_order failure_order ) ;
-  
-  bool compare_exchange_strong( T expected, T desired,
-				std::operation_order success_order,
-			       std::operation_order failure_order ) ;
+    void store(T store_value, std::operation_order store_order);
+
+    T load(std::operation_order oper_order);
+
+    T exchange(T exchange, std::operation_order oper_order);
+
+    T exchange(T exchange);
+
+    bool compare_exchange_weak(T expected, T desired,
+                               std::operation_order success_order,
+                               std::operation_order failure_order);
+
+    bool compare_exchange_strong(T expected, T desired,
+                                 std::operation_order success_order,
+                                 std::operation_order failure_order);
 
 
-  bool compare_exchange_strong( T expected, T desired,
-				std::operation_order success_order ) ;
-  
-  T fetch_add( T operand, std::operation_order oper_order ) ;
-  
-  T fetch_sub( T operand, std::operation_order oper_order ) ;
-  
-  T fetch_and( T operand, std::operation_order oper_order ) ;
-  
-  T fetch_or( T operand, std::operation_order oper_order ) ;
-  
-  T fetch_xor( T operand, std::operation_order oper_order ) ;
+    bool compare_exchange_strong(T expected, T desired,
+                                 std::operation_order success_order);
 
-  T operator =( T str_value ) ;
+    T fetch_add(T operand, std::operation_order oper_order);
 
-  T operator ++() ;
+    T fetch_sub(T operand, std::operation_order oper_order);
 
-  T operator --() ;
-  
-  T operator +=( T operand ) ;
-  
-  T operator -=( T operand ) ;
+    T fetch_and(T operand, std::operation_order oper_order);
+
+    T fetch_or(T operand, std::operation_order oper_order);
+
+    T fetch_xor(T operand, std::operation_order oper_order);
+
+    T operator=(T str_value);
+
+    T operator++();
+
+    T operator--();
+
+    T operator+=(T operand);
+
+    T operator-=(T operand);
 };
 
 template<typename T>
-T atomic_fetch_add_explicit( atomic<T>* load_store_address,
-			     T operand, std::operation_order success );
+T atomic_fetch_add_explicit(atomic<T> *load_store_address,
+                            T operand, std::operation_order success);
 
 template<typename T>
-T atomic_fetch_sub_explicit( atomic<T>* load_store_address,
-			     T operand, std::operation_order success );
+T atomic_fetch_sub_explicit(atomic<T> *load_store_address,
+                            T operand, std::operation_order success);
